@@ -2,8 +2,6 @@ use crate::actions::Actions;
 use crate::loading::TextureAssets;
 use crate::{helpers, GameState};
 use bevy::prelude::*;
-use bevy::render::camera;
-use bevy::prelude::Camera2d;
 
 pub struct PlayerPlugin;
 

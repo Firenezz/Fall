@@ -113,7 +113,7 @@ impl Polygon {
         centroid
     }
 
-    pub fn get_bounding_box(&self) -> (Vec2, Vec2) {
+    pub fn get_bounding_box(&self) -> AABB {
         let mut min = Vec2::new(f32::MAX, f32::MAX);
         let mut max = Vec2::new(f32::MIN, f32::MIN);
         for vertex in &self.vertices {
@@ -124,9 +124,7 @@ impl Polygon {
     }
 
     pub fn contains_point(&self, point: Vec2) -> bool {
-        unimplemented!("contains_point");
-        let (min, max) = self.get_bounding_box();
-        if point.x < min.x || point.x > max.x || point.y < min.y || point.y > max.y {
+        if quick_check_bouindary_collision(point, self.get_bounding_box()).is_none() {
             return false;
         }
         let mut inside = false;
@@ -140,6 +138,20 @@ impl Polygon {
         }
         inside
     }
+}
+
+type AABB = (Vec2, Vec2);
+
+enum CollisionType {
+    Inside = 1,
+}
+
+#[inline(always)]
+fn quick_check_bouindary_collision(point : Vec2, aabb: AABB) -> Option<CollisionType> {
+    if point.x < aabb.0.x || point.x > aabb.1.x || point.y < aabb.0.y || point.y > aabb.1.y {
+        return None;
+    }
+    Some(CollisionType::Inside)
 }
 
 #[cfg(test)]

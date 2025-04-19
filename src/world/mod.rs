@@ -57,7 +57,7 @@ fn build_world(mut commands: Commands, textures: Res<TextureAssets>) {
         0.0,
         1.0,
     ));
-    let texture_handle: Handle<Image> = textures.tile_atlas.clone().into();
+    let texture_handle: Handle<Image> = textures.tile_atlas.clone();
     commands.entity(tilemap_entity).insert(TilemapBundle {
         grid_size: TILE_SIZE.into(),
         size: CHUNK_SIZE.into(),
