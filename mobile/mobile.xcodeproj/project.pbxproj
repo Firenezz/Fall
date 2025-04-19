@@ -306,7 +306,7 @@
 					"-lmobile",
 					"-lc++abi",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER /* Todo */ = me.nikl.bevygame;
+				PRODUCT_BUNDLE_IDENTIFIER /* Todo */ = firenezz.tilegame;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -414,7 +414,7 @@
 					"-lmobile",
 					"-lc++abi",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER /* Todo */ = me.nikl.bevygame;
+				PRODUCT_BUNDLE_IDENTIFIER /* Todo */ = firenezz.tilegame;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

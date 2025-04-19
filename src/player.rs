@@ -1,7 +1,9 @@
 use crate::actions::Actions;
 use crate::loading::TextureAssets;
-use crate::GameState;
+use crate::{helpers, GameState};
 use bevy::prelude::*;
+use bevy::render::camera;
+use bevy::prelude::Camera2d;
 
 pub struct PlayerPlugin;
 
@@ -13,14 +15,16 @@ pub struct Player;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::Playing), spawn_player)
-            .add_systems(Update, move_player.run_if(in_state(GameState::Playing)));
+            .add_systems(Update, helpers::camera::movement.run_if(in_state(GameState::Playing)));
     }
 }
 
-fn spawn_player(mut commands: Commands, textures: Res<TextureAssets>) {
+fn spawn_player(mut commands: Commands, textures: Res<TextureAssets>,
+    
+) {
     commands.spawn((
         Sprite::from_image(textures.bevy.clone()),
-        Transform::from_translation(Vec3::new(0., 0., 1.)),
+        Transform::from_translation(Vec3::new(0., 0., 0.)),
         Player,
     ));
 }

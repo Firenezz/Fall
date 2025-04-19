@@ -30,6 +30,10 @@ pub struct AudioAssets {
 
 #[derive(AssetCollection, Resource)]
 pub struct TextureAssets {
+    #[asset(path = "textures/tiles.png")]
+    pub tile_atlas: Handle<Image>,
+    #[asset(path = "textures/tile.png")]
+    pub tile: Handle<Image>,
     #[asset(path = "textures/bevy.png")]
     pub bevy: Handle<Image>,
     #[asset(path = "textures/github.png")]

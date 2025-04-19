@@ -18,13 +18,11 @@
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=bevy_game",
-                    "--package=bevy_game",
-                    "--features",
-                    "dev"
+                    "--bin=tile_game",
+                    "--package=tile_game",
                 ],
                 "filter": {
-                    "name": "bevy_game",
+                    "name": "tile_game",
                     "kind": "bin"
                 },
             },
@@ -40,6 +38,24 @@
                     "LD_LIBRARY_PATH": "${env:LD_LIBRARY_PATH}:${workspaceFolder}/target/debug:${env:HOME}/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib:${env:HOME}/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib"
                 }
             }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'tile_game'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=tile_game",
+                    "--package=tile_game",
+                ],
+                "filter": {
+                    "name": "tile_game",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
         },
         {
             "type": "lldb",
