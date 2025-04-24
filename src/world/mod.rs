@@ -100,7 +100,14 @@ fn drop_world(mut commands: Commands, tilemap_query: Query<Entity, With<TileStor
 }
 
 fn build_world(mut commands: Commands, mut next_state: ResMut<NextState<GenerationState>>) {
-    commands.spawn_empty().insert(Name::new("World")).insert(Grid::default());
+    commands.spawn_empty()
+        .insert(Name::new("World"))
+        .insert(Grid::default())
+        .insert((
+            GlobalTransform::default(),
+            InheritedVisibility::default(),
+            Visibility::default(),
+        ));
     next_state.set(GenerationState::Generating);
 }
 

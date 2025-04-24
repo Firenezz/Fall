@@ -1,4 +1,3 @@
-
 [target.x86_64-pc-windows-msvc]
 # LLD linker
 #
@@ -26,7 +25,7 @@ rustflags = [
   # - Ubuntu: `sudo apt-get install lld clang`
   # - Fedora: `sudo dnf install lld clang`
   # - Arch: `sudo pacman -S lld clang`
-  "-Clink-arg=-fuse-ld=lld",
+  #"-Clink-arg=-fuse-ld=lld",
 
   # Mold linker
   #
@@ -35,7 +34,7 @@ rustflags = [
   # - Ubuntu: `sudo apt-get install mold clang`
   # - Fedora: `sudo dnf install mold clang`
   # - Arch: `sudo pacman -S mold clang`
-  # "-Clink-arg=-fuse-ld=mold",
+  "-Clink-arg=-fuse-ld=mold",
 
   # Nightly
   # "-Zshare-generics=y",
@@ -45,10 +44,10 @@ rustflags = [
 # See https://github.com/bevyengine/bevy/issues/12207 for details.
 rustdocflags = [
   # LLD linker
-  "-Clink-arg=-fuse-ld=lld",
+  #"-Clink-arg=-fuse-ld=lld",
 
   # Mold linker
-  # "-Clink-arg=-fuse-ld=mold",
+   "-Clink-arg=-fuse-ld=mold",
 ]
 
 # Optional: Uncommenting the following improves compile times, but reduces the amount of debug info to 'line number tables only'.
@@ -57,6 +56,5 @@ rustdocflags = [
 # debug = 1
 
 # This enables you to run the CI tool using `cargo ci`.
-# This is not enabled by default, you need to copy this file to `config.toml`.
 [alias]
 ci = "run --package ci --"

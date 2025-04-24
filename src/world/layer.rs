@@ -8,7 +8,7 @@ pub struct LayerPlugin;
 impl Plugin for LayerPlugin {
     fn build(&self, app: &mut App) {
         app
-            .insert_resource(MapSize(UVec2::new(2, 2)))
+            .insert_resource(MapSize(UVec2::new(3, 3)))
             .add_systems(OnEnter(GenerationState::Generating), ((build_background_layer, build_solid_layer), next_generation_step).chain());
     }
 }
