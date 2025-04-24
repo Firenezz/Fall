@@ -1,6 +1,9 @@
 
 use bevy::{math::{UVec2, Vec2}, reflect::Reflect};
 
+pub mod geometry;
+pub mod delaunay;
+
 pub struct Diagram {
     pub sites: Vec<UVec2>,
     pub regions: Vec<Region>
@@ -42,7 +45,12 @@ pub struct Polygon {
 }
 
 impl Polygon {
+    /// Creates a new polygon with the given vertices
+    /// 
+    /// # Panics
+    /// Panics if the number of vertices is less than 3
     pub fn new(vertices: Vec<Vec2>) -> Self {
+        assert!(vertices.len() >= 3);
         Self { vertices }
     }
 
@@ -123,6 +131,7 @@ impl Polygon {
         (min, max)
     }
 
+    
     pub fn contains_point(&self, point: Vec2) -> bool {
         if quick_check_bouindary_collision(point, self.get_bounding_box()).is_none() {
             return false;
@@ -205,16 +214,8 @@ mod tests {
         let vertices = vec![
             Vec2::new(0.0, 0.0),
             Vec2::new(0.0, 0.0),
+            Vec2::new(0.0, 0.0),
         ];
-        let polygon = Polygon::new(vertices);
-        
-        let centroid = polygon.get_centroid();
-        assert!(centroid.is_nan());
-    }
-
-    #[test]
-    fn test_get_centroid_empty_polygon() {
-        let vertices = vec![];
         let polygon = Polygon::new(vertices);
         
         let centroid = polygon.get_centroid();
@@ -255,17 +256,10 @@ mod tests {
         let vertices = vec![
             Vec2::new(0.0, 0.0),
             Vec2::new(0.0, 0.0),
+            Vec2::new(0.0, 0.0),
         ];
         let polygon = Polygon::new(vertices);
         
         assert!(!polygon.contains_point(Vec2::new(0.0, 0.0))); // Degenerate polygon
-    }
-
-    #[test]
-    fn test_contains_point_empty_polygon() {
-        let vertices = vec![];
-        let polygon = Polygon::new(vertices);
-        
-        assert!(!polygon.contains_point(Vec2::new(0.0, 0.0)));
     }
 }

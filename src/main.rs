@@ -6,6 +6,7 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy::winit::WinitWindows;
 use bevy::DefaultPlugins;
+use bevy_framepace::FramepacePlugin;
 use tile_game::GamePlugin;
 use std::io::Cursor;
 use winit::window::Icon;
@@ -33,6 +34,7 @@ fn main() {
                 }),
         )
         .add_plugins(GamePlugin)
+        .add_plugins(FramepacePlugin)
         .add_systems(Startup, set_window_icon)
         .run();
 }

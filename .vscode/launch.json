@@ -48,6 +48,8 @@
                     "build",
                     "--bin=tile_game",
                     "--package=tile_game",
+                    "--features",
+                    "dev_mode",
                 ],
                 "filter": {
                     "name": "tile_game",
@@ -55,7 +57,12 @@
                 }
             },
             "args": [],
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}",
+
+            "env": {
+                "CARGO_MANIFEST_DIR": "${workspaceFolder}",
+                "PATH": "${workspaceFolder}/target/debug/deps;${env:USERPROFILE}\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-pc-windows-msvc\\lib;${env:PATH}" // for windows
+            }
         },
         {
             "type": "lldb",
@@ -65,13 +72,11 @@
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=bevy_game",
-                    "--package=bevy_game",
-                    "--features",
-                    "dev"
+                    "--bin=tile_game",
+                    "--package=tile_game",
                 ],
                 "filter": {
-                    "name": "bevy_game",
+                    "name": "tile_game",
                     "kind": "bin"
                 }
             },

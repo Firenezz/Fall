@@ -1,5 +1,5 @@
 [package]
-name = "voronoi"
+name = "common"
 version = "0.1.0"
 edition = "2024"
 
@@ -8,3 +8,4 @@ bevy = { workspace = true, features = [
     "trace"
     ]}
 tracing = "0.1"
+bevy_ecs_tilemap = { workspace = true }

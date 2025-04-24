@@ -13,7 +13,7 @@ pub struct Player;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::Playing), spawn_player)
-            .add_systems(Update, helpers::camera::movement.run_if(in_state(GameState::Playing)));
+            .add_systems(Update, (helpers::camera::movement, helpers::camera::zoom_scroll).run_if(in_state(GameState::Playing)));
     }
 }
 

@@ -1,28 +1,96 @@
 pub mod tile;
+pub mod layer;
 
-use bevy::prelude::*;
+use std::{rc::Rc, sync::Arc};
+
+use bevy::{prelude::*, utils::HashSet};
 use bevy_ecs_tilemap::prelude::*;
+use layer::Layer;
 use tile::FallTileBundle;
+use rand::{rngs::ThreadRng, Rng};
 
 use crate::{loading::TextureAssets, GameState};
-
+use crate::states::generation::GenerationState;
 pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app
+            .init_resource::<SolidTiles>()
+            .init_resource::<GenerationSeed>()
+            .init_non_send_resource::<SeededRng<ThreadRng>>()
             .add_plugins(TilemapPlugin)
-            .add_systems(OnEnter(GameState::Playing), build_world)
+            .add_plugins(layer::LayerPlugin)
+            .add_systems(OnEnter(GenerationState::Initializing), build_world)
             .add_systems(OnExit(GameState::Playing), drop_world);
     }
 }
 
-#[derive(Component)]
-pub struct World {
-    size: bevy::math::UVec2,
+#[derive(Resource)]
+pub struct SolidTiles (pub HashSet<(i8, i8)>);
+
+#[derive(Resource)]
+pub struct SeededRng<R: Rng + ?Sized>(R);
+
+#[derive(Resource)]
+pub struct GenerationSeed(u32);
+
+impl Default for SolidTiles {
+    fn default() -> Self {
+        Self(HashSet::new())
+    }
 }
 
-const TILE_SIZE: TilemapTileSize = TilemapTileSize { x: 16.0, y: 16.0 };
+impl Default for GenerationSeed {
+    fn default() -> Self {
+        let seed = rand::thread_rng().gen();
+        Self(seed)
+    }
+}
+
+impl Default for SeededRng<ThreadRng> {
+    fn default() -> Self {
+        Self(rand::thread_rng())
+    }
+}
+
+/// The world is a collection of layers.
+/// 
+#[derive(Component, Reflect)]
+pub struct Grid {
+    size: bevy::math::UVec2,
+    /// The layers of the world.    
+    /// 
+    /// The first layer is the base layer, and the layers are rendered in order of their id.
+    /// 
+    /// The layer id corresponds to the layer index in the tilemap and the z-index in the 3D scene. 
+    layers: Vec<Layer>,
+}
+
+impl Grid {
+    pub fn get_layer(&self, id: u32) -> Option<&Layer> {
+        self.layers.iter().find(|layer| layer.id == id)
+    }
+
+    pub fn get_layer_mut(&mut self, id: u32) -> Option<&mut Layer> {
+        self.layers.iter_mut().find(|layer| layer.id == id)
+    }
+
+    pub fn get_layers(&self) -> &[Layer] {
+        &self.layers
+    }
+
+    pub fn get_layers_mut(&mut self) -> &mut [Layer] {
+        &mut self.layers
+    }
+}
+
+impl Default for Grid {
+    fn default() -> Self {
+        Self { size: CHUNK_SIZE.into(), layers: vec![] }
+    }
+}
+
 const CHUNK_SIZE: UVec2 = UVec2 { x: 32, y: 32 };
 
 fn drop_world(mut commands: Commands, tilemap_query: Query<Entity, With<TileStorage>>) {
@@ -31,45 +99,8 @@ fn drop_world(mut commands: Commands, tilemap_query: Query<Entity, With<TileStor
     }
 }
 
-fn build_world(mut commands: Commands, textures: Res<TextureAssets>) {
-    let tilemap_entity = commands.spawn_empty().insert(Name::new("Tilemap")).id();
-    let mut tile_storage = TileStorage::empty(CHUNK_SIZE.into());
-
-    // Spawn the elements of the tilemap.
-    for x in 0..CHUNK_SIZE.x {
-        for y in 0..CHUNK_SIZE.y {
-            let tile_pos = TilePos { x, y };
-            let tile_entity = commands
-                .spawn(TileBundle {
-                    position: tile_pos,
-                    tilemap_id: TilemapId(tilemap_entity),
-                    ..Default::default()
-                })
-                .insert(Name::new("Tile"))
-                .id();
-            commands.entity(tilemap_entity).add_child(tile_entity);
-            tile_storage.set(&tile_pos, tile_entity);
-        }
-    }
-
-    let transform = Transform::from_translation(Vec3::new(
-        0.0,
-        0.0,
-        1.0,
-    ));
-    let texture_handle: Handle<Image> = textures.tile_atlas.clone();
-    commands.entity(tilemap_entity).insert(TilemapBundle {
-        grid_size: TILE_SIZE.into(),
-        size: CHUNK_SIZE.into(),
-        storage: tile_storage,
-        tile_size: TILE_SIZE,
-        transform,
-        texture: TilemapTexture::Single(texture_handle),
-        render_settings: TilemapRenderSettings {
-            ..Default::default()
-        },
-        ..Default::default()
-    })
-    .insert(FallTileBundle::default());
-
+fn build_world(mut commands: Commands, mut next_state: ResMut<NextState<GenerationState>>) {
+    commands.spawn_empty().insert(Name::new("World")).insert(Grid::default());
+    next_state.set(GenerationState::Generating);
 }
+

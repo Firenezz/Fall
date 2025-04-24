@@ -1,4 +1,5 @@
 use crate::loading::TextureAssets;
+use crate::states::generation::GenerationState;
 use crate::GameState;
 use bevy::prelude::*;
 
@@ -170,6 +171,7 @@ struct OpenLink(&'static str);
 
 fn click_play_button(
     mut next_state: ResMut<NextState<GameState>>,
+    mut next_generation_state: ResMut<NextState<GenerationState>>,
     mut interaction_query: Query<
         (
             &Interaction,
@@ -186,6 +188,7 @@ fn click_play_button(
             Interaction::Pressed => {
                 if let Some(state) = change_state {
                     next_state.set(state.0.clone());
+                    next_generation_state.set(GenerationState::Initializing);
                 } else if let Some(link) = open_link {
                     if let Err(error) = webbrowser::open(link.0) {
                         warn!("Failed to open link {error:?}");

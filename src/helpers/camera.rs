@@ -1,4 +1,4 @@
-use bevy::{input::ButtonInput, math::Vec3, prelude::*, render::camera::Camera};
+use bevy::{input::{mouse::MouseWheel, ButtonInput}, math::Vec3, prelude::*, render::camera::Camera};
 
 // A simple camera system for moving and zooming the camera.
 #[allow(dead_code)]
@@ -38,10 +38,33 @@ pub fn movement(
             ortho.scale = 0.5;
         }
 
+        
+
         let z = transform.translation.z;
         transform.translation += time.delta_secs() * direction * 500.;
         // Important! We need to restore the Z values when moving the camera around.
         // Bevy has a specific camera setup and this can mess with how our layers are shown.
         transform.translation.z = z;
+    }
+}
+
+pub fn zoom_scroll(
+    mut evr_scroll: EventReader<MouseWheel>,
+    mut query: Query<&mut OrthographicProjection, With<Camera>>,
+) {
+    use bevy::input::mouse::MouseScrollUnit;
+    for ev in evr_scroll.read() {
+        match ev.unit {
+            MouseScrollUnit::Line => {
+                for mut ortho in query.iter_mut() {
+                    ortho.scale += ev.y * 0.1;
+                }
+            }
+            MouseScrollUnit::Pixel => {
+                for mut ortho in query.iter_mut() {
+                    ortho.scale += ev.y * 0.01;
+                }
+            }
+        }
     }
 }

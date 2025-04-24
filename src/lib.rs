@@ -7,6 +7,8 @@ mod menu;
 mod player;
 mod world;
 mod helpers;
+mod resources;
+mod states;
 
 use crate::actions::ActionsPlugin;
 use crate::audio::InternalAudioPlugin;
@@ -19,6 +21,7 @@ use bevy::app::App;
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use states::generation::GenerationState;
 
 // This example game uses States to separate logic
 // See https://bevy-cheatbook.github.io/programming/states.html
@@ -38,20 +41,23 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.init_state::<GameState>().add_plugins((
+        app.init_state::<GameState>()
+            .init_state::<GenerationState>().add_plugins((
             LoadingPlugin,
             MenuPlugin,
             ActionsPlugin,
             InternalAudioPlugin,
             PlayerPlugin,
             world::WorldPlugin,
+            simulation::SimulationPlugin,
         ));
 
         #[cfg(debug_assertions)]
         {
             app
-                .add_plugins((FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin::default()))
-                .add_plugins(WorldInspectorPlugin::new());
+                .add_plugins((WorldInspectorPlugin::default(), LogDiagnosticsPlugin::default()))
+                //.add_plugins(FrameTimeDiagnosticsPlugin);
+                ;
         }
     }
 }

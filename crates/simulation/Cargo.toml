@@ -1,0 +1,14 @@
+[package]
+name = "simulation"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bevy = { workspace = true, features = [
+    "trace"
+    ]}
+tracing = "0.1"
+bevy_ecs_tilemap = { workspace = true }
+
+# Workspace dependencies
+common = { workspace = true }
