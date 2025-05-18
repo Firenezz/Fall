@@ -15,6 +15,10 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug",
+            "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "sourceLanguages": ["rust"],
             "cargo": {
                 "args": [
                     "build",
@@ -26,24 +30,23 @@
                 "filter": {
                     "name": "tile_game",
                     "kind": "bin"
-                },
+                }
             },
-            "args": [],
-            "cwd": "${workspaceFolder}",
             "env": {
                 "CARGO_MANIFEST_DIR": "${workspaceFolder}",
             },
             "linux": {
+                "program": "${workspaceFolder}/target/debug/tile_game",
                 "env": {
-                    // platform-specific launch config overwrites (rather than merges with) existing config, so need to specify CARGO_MANIFEST_DIR again
                     "CARGO_MANIFEST_DIR": "${workspaceFolder}",
-                    "LD_LIBRARY_PATH": "${env:LD_LIBRARY_PATH}:${workspaceFolder}/target/debug:${env:HOME}/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib:${env:HOME}/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib"
+                    "LD_LIBRARY_PATH": "${env:LD_LIBRARY_PATH}:${workspaceFolder}/target/debug:${workspaceFolder}/target/debug/deps:${env:HOME}/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib:${env:HOME}/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib:${env:HOME}/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib:${env:HOME}/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib"
                 }
             },
             "windows": {
+                "program": "${workspaceFolder}/target/debug/tile_game.exe",
                 "env": {
                     "CARGO_MANIFEST_DIR": "${workspaceFolder}",
-                    "PATH": "${workspaceFolder}/target/debug/deps;${env:USERPROFILE}\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-pc-windows-msvc\\lib;${env:PATH}" // for windows
+                    "PATH": "${env:PATH};${workspaceFolder}/target/debug/deps;${env:USERPROFILE}\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-pc-windows-msvc\\lib" // for windows
                 }
             }
         },
@@ -51,6 +54,10 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug executable 'tile_game'",
+            "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "sourceLanguages": ["rust"],
             "cargo": {
                 "args": [
                     "build",
@@ -64,9 +71,6 @@
                     "kind": "bin"
                 }
             },
-            "args": [],
-            "cwd": "${workspaceFolder}",
-
             "env": {
                 "CARGO_MANIFEST_DIR": "${workspaceFolder}",
                 "PATH": "${workspaceFolder}/target/debug/deps;${env:USERPROFILE}\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-pc-windows-msvc\\lib;${env:PATH}" // for windows
@@ -76,6 +80,10 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug unit tests",
+            "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}",
+            "args": ["--test"],
+            "cwd": "${workspaceFolder}",
+            "sourceLanguages": ["rust"],
             "cargo": {
                 "args": [
                     "test",
@@ -88,8 +96,6 @@
                     "kind": "bin"
                 }
             },
-            "args": [],
-            "cwd": "${workspaceFolder}",
             "env": {
                 "CARGO_MANIFEST_DIR": "${workspaceFolder}",
                 "LD_LIBRARY_PATH": "${env:LD_LIBRARY_PATH}:${workspaceFolder}/target/debug:${env:HOME}/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib:${env:HOME}/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib"

@@ -54,7 +54,7 @@ impl Default for ThermalConductivity {
 /// 
 /// # Returns
 /// Tuple of (new_temp1, new_temp2)
-#[tracing::instrument(name = "Calculating heat transfer", skip(cell1, cell2, dt, transfer_coefficient))]
+//#[tracing::instrument(name = "Calculating heat transfer", skip(cell1, cell2, dt, transfer_coefficient))]
 pub fn calculate_heat_transfer(
     cell1: &HeatCell,
     cell2: &HeatCell,
@@ -72,12 +72,7 @@ pub fn calculate_heat_transfer(
     // The negative sign ensures heat flows from hot to cold
     let heat_transfer = avg_conductivity * temp_diff * dt.as_secs_f32() * transfer_coefficient * 0.5;
 
-    info!("Heat transfer: {}", heat_transfer);
-    info!("Cell 1 temperature: {}", cell1.temperature.value);
-    info!("Cell 2 temperature: {}", cell2.temperature.value);
-    info!("Avg conductivity: {}", avg_conductivity);
-    info!("Transfer coefficient: {}", transfer_coefficient);
-    info!("Time: {}", dt.as_secs_f32());
+    debug!("Heat transfer: {}", heat_transfer);
     
     // Return new temperatures
     // Heat flows from hot to cold, so:
@@ -112,12 +107,12 @@ fn thermal_conduction(
     if simulation_rate.rate.just_finished() {
         use bevy_ecs_tilemap::helpers::square_grid::neighbors::Neighbors;
         let map_size = bevy_ecs_tilemap::map::TilemapSize::from(size.into_inner().0);
-        
-        // First pass: collect all temperature changes
         let mut temp_accumulators = vec![0.0; (map_size.x * map_size.y) as usize];
         
-        for (heat_cell, tile_pos, parent) in tile_heat_query.iter() {
-            if let Ok(tile_storage) = layer_query.get(parent.get()) {
+        // First pass: collect all temperature changes
+        
+        for (heat_cell, tile_pos, child_of) in tile_heat_query.iter() {
+            if let Ok(tile_storage) = layer_query.get(parent.pare) {
                 let neighbors = Neighbors::get_square_neighboring_positions(tile_pos, &map_size, false)
                     .entities(tile_storage);
                 
@@ -142,6 +137,8 @@ fn thermal_conduction(
 
 #[cfg(test)]
 mod tests {
+    use std::thread;
+
     use super::*;
     use crate::SimulationPlugin;
     use bevy_ecs_tilemap::prelude::*;
@@ -216,7 +213,7 @@ mod tests {
                 if x == 1 && y == 1 {
                     heat_cell.temperature.value = 100.0; // Center tile is hot
                 } else {
-                    heat_cell.temperature.value = 20.0; // Surrounding tiles are cool
+                    heat_cell.temperature.value = 0.0; // Surrounding tiles are cool
                 }
                 
                 // Spawn tile as a child of the tilemap
@@ -275,16 +272,18 @@ mod tests {
         app.insert_resource(MapSize(UVec2::new(3, 3)));
         // Add a very short simulation rate for testing
         app.insert_resource(SimulationRate { rate: Timer::new(Duration::from_millis(1), TimerMode::Repeating) });
+        app.finish();
 
         // Setup the test map
         app.add_systems(Startup, setup_test_map);
         app.update();
 
         // Run the thermal conduction system
-        app.add_systems(Update, thermal_conduction);
+        app.add_systems(FixedUpdate, thermal_conduction);
         
         // Run for a few frames to let heat transfer occur
         for _ in 0..5 {
+            thread::sleep(Duration::from_millis(2));
             app.update();
         }
 
@@ -299,7 +298,7 @@ mod tests {
         // Check surrounding tiles (should have warmed up)
         for (heat_cell, pos) in tiles.iter() {
             if pos.x != 1 || pos.y != 1 {
-                assert!(heat_cell.temperature.value > 20.0, "Surrounding tiles should have warmed up");
+                assert!(heat_cell.temperature.value > 0.0, "Surrounding tiles should have warmed up");
             }
         }
     }

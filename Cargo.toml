@@ -3,12 +3,12 @@ name = "tile_game"
 version = "0.1.0"
 publish = false
 authors = ["FireNezz <git@nikl.me>"] # <git@nikl.me>
-edition = "2021"
+edition = "2024"
 exclude = ["dist", "build", "assets", "credits"]
 
 [workspace]
 members = [
-    "crates/common", 
+    "crates/common", "crates/config", 
     "crates/simulation",
     "crates/voronoi"
 ]
@@ -21,11 +21,11 @@ simulation = { path = "./crates/simulation" }
 common = { path = "./crates/common" }
 
 # External
-bevy = { version = "0.15.3", default-features = false }
-bevy_ecs_tilemap = { version = "0.15" }
+bevy = { version = "0.16.0", default-features = false }
+bevy_ecs_tilemap = { version = "0.16.0" }
 
 # Debugging
-bevy-inspector-egui = "0.30.0"
+bevy-inspector-egui = "0.31.0"
 
 [profile.dev.package."*"]
 opt-level = 3
@@ -55,6 +55,9 @@ dev_mode = [
 ]
 debug_mode = [
     "bevy_mod_debugdump"
+]
+serde = [
+    
 ]
 
 # All of Bevy's default features exept for the audio related ones (bevy_audio, vorbis), since they clash with bevy_kira_audio
@@ -91,11 +94,12 @@ bevy = { workspace = true, default-features = false, features = [
     "tonemapping_luts",
     "webgl2",
     "x11",
+    "wayland",
     #"std", # deactivated until 0.16 is used in the dependencies
     #"async_executor"
 ] }
-bevy_kira_audio = { version = "0.22.0", features = ["android_shared_stdcxx"] }
-bevy_asset_loader = { version = "0.22" }
+bevy_kira_audio = { version = "0.23.0", features = ["android_shared_stdcxx"] }
+bevy_asset_loader = { version = "0.23.0" }
 rand = { version = "0.9.1" }
 webbrowser = { version = "1", features = ["hardened"] }
 
@@ -106,18 +110,19 @@ image = { version = "0.25", default-features = false }
 log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"] }
 
 # Debugging
-bevy_mod_debugdump = { version = "0.12.1", optional = true }
+bevy_mod_debugdump = { version = "0.13.0", optional = true }
 
 # Game dependencies
 bevy_ecs_tilemap = { workspace = true }
 bevy-inspector-egui = { workspace = true }
 bevy_editor_pls = { version = "0.10.0" }
-bevy_framepace = "0.18.1"
+bevy_framepace = "0.19.1"
 
 # Crates
 voronoi = { workspace = true }
 simulation = { workspace = true }
 common = { workspace = true }
+moonshine-save = "0.4.2"
 
 [build-dependencies]
 embed-resource = "1"
