@@ -8,7 +8,7 @@ exclude = ["dist", "build", "assets", "credits"]
 
 [workspace]
 members = [
-    "crates/common", "crates/config", 
+    "crates/common", 
     "crates/simulation",
     "crates/voronoi"
 ]
@@ -23,6 +23,7 @@ common = { path = "./crates/common" }
 # External
 bevy = { version = "0.16.0", default-features = false }
 bevy_ecs_tilemap = { version = "0.16.0" }
+bevy_reflect = { version = "0.16.0" }
 
 # Debugging
 bevy-inspector-egui = "0.31.0"
@@ -72,7 +73,7 @@ bevy = { workspace = true, default-features = false, features = [
     "bevy_gizmos",
     "bevy_gltf",
     "bevy_mesh_picking_backend",
-    "bevy_pbr",
+    #"bevy_pbr", # deactivated until we actually use it
     "bevy_picking",
     "bevy_render",
     "bevy_scene",
@@ -95,8 +96,10 @@ bevy = { workspace = true, default-features = false, features = [
     "webgl2",
     "x11",
     "wayland",
-    #"std", # deactivated until 0.16 is used in the dependencies
-    #"async_executor"
+    "std",
+    "async_executor",
+
+    "track_location"
 ] }
 bevy_kira_audio = { version = "0.23.0", features = ["android_shared_stdcxx"] }
 bevy_asset_loader = { version = "0.23.0" }

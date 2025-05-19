@@ -4,6 +4,8 @@ use bevy::prelude::*;
 use bevy_ecs_tilemap::tiles::TileStorage;
 use common::resources::MapSize;
 
+use bevy_ecs_tilemap::prelude::TilePos;
+
 use crate::SimulationRate;
 
 #[derive(Component, Default, Reflect, Debug, PartialEq, PartialOrd)]
@@ -97,7 +99,7 @@ impl Plugin for ThermalPlugin {
 }
 
 fn thermal_conduction(
-    mut tile_heat_query: Query<(&mut HeatCell, &bevy_ecs_tilemap::tiles::TilePos, &Parent)>,
+    mut tile_heat_query: Query<(&ChildOf, &mut HeatCell, &TilePos)>,
     layer_query: Query<&TileStorage>,
     mut simulation_rate: ResMut<SimulationRate>,
     size: Res<MapSize>,
@@ -110,14 +112,13 @@ fn thermal_conduction(
         let mut temp_accumulators = vec![0.0; (map_size.x * map_size.y) as usize];
         
         // First pass: collect all temperature changes
-        
-        for (heat_cell, tile_pos, child_of) in tile_heat_query.iter() {
-            if let Ok(tile_storage) = layer_query.get(parent.pare) {
+        for (child_of, heat_cell, tile_pos) in tile_heat_query.iter() {
+            if let Ok(tile_storage) = layer_query.get(child_of.parent()) {
                 let neighbors = Neighbors::get_square_neighboring_positions(tile_pos, &map_size, false)
                     .entities(tile_storage);
                 
                 for neighbor in neighbors.iter() {
-                    if let Ok((neighbor_cell, neighbor_pos, _)) = tile_heat_query.get(*neighbor) {
+                    if let Ok((child_of_neighbor, neighbor_cell, neighbor_pos)) = tile_heat_query.get(*neighbor) {
                         let (new_temp1, new_temp2) = calculate_heat_transfer(heat_cell, neighbor_cell, time.delta(), 0.5);
                         temp_accumulators[tile_pos.to_index(&map_size)] += new_temp1;
                         // Update neighbor changes
@@ -128,7 +129,7 @@ fn thermal_conduction(
         }
         
         // Second pass: apply all temperature changes
-        for (mut heat_cell, tile_pos, _) in tile_heat_query.iter_mut() {
+        for (_, mut heat_cell, tile_pos) in tile_heat_query.iter_mut() {
             let index = tile_pos.to_index(&map_size);
             heat_cell.temperature.value += temp_accumulators[index];
         }
@@ -155,8 +156,8 @@ mod tests {
         if let Some(heat_cell) = world.get::<HeatCell>(entity) {
             eprintln!("- HeatCell: {:?}", heat_cell);
         }
-        if let Some(parent) = world.get::<Parent>(entity) {
-            eprintln!("- Parent: {:?}", parent);
+        if let Some(child_of) = world.get::<ChildOf>(entity) {
+            eprintln!("- ChildOf: {:?}", child_of);
         }
         if let Some(tilemap_id) = world.get::<TilemapId>(entity) {
             eprintln!("- TilemapId: {:?}", tilemap_id);

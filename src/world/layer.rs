@@ -1,4 +1,4 @@
-use bevy::{prelude::*, utils::tracing::{self, Instrument}};
+use bevy::{log::tracing, prelude::*};
 use bevy_ecs_tilemap::{map::{TilemapId, TilemapSize}, tiles::{TileBundle, TilePos, TileStorage}, TilemapBundle};
 use common::resources::MapSize;
 use crate::states::generation::GenerationState;
@@ -116,14 +116,14 @@ impl LayerBuilder {
 }
 
 #[tracing::instrument(name = "Building solid layer", skip(commands, size, grid_query))]
-fn build_background_layer(mut commands: Commands, size: Res<MapSize>, mut grid_query: Query<Entity, With<super::Grid>>) {
+fn build_background_layer(mut commands: Commands, size: Res<MapSize>, mut grid_query: Query<Entity, With<super::Grid>>) -> Result<(), BevyError> {
 
     use tracing::info;
 
     info!("Building background layer");
 
     let map_size = TilemapSize { x: size.0.x, y: size.0.y };
-    let grid_entity = grid_query.single_mut();
+    let grid_entity = grid_query.single_mut()?;
 
     let layer_entity = 
         LayerBuilder::new()
@@ -134,16 +134,18 @@ fn build_background_layer(mut commands: Commands, size: Res<MapSize>, mut grid_q
 
     commands.entity(grid_entity)
         .add_child(layer_entity);
+
+    Ok(())
 }
 
 #[tracing::instrument(name = "Building solid layer", skip(commands, size, grid_query))]
-fn build_solid_layer(mut commands: Commands, size: Res<MapSize>, mut grid_query: Query<Entity, With<super::Grid>>) {
+fn build_solid_layer(mut commands: Commands, size: Res<MapSize>, mut grid_query: Query<Entity, With<super::Grid>>) -> Result<(), BevyError> {
 
     use tracing::info;
 
     info!("Building solid layer");
 
-    let grid_entity = grid_query.single_mut();
+    let grid_entity = grid_query.single_mut()?;
 
     let layer_entity = 
         LayerBuilder::new()
@@ -154,6 +156,8 @@ fn build_solid_layer(mut commands: Commands, size: Res<MapSize>, mut grid_query:
 
     commands.entity(grid_entity)
         .add_child(layer_entity);
+
+    Ok(())
 }
 
 #[tracing::instrument(name = "Filling layer", skip(commands, tile_storage))]
@@ -165,6 +169,7 @@ fn fill_layer(
 ) {
 
     use simulation::temperature::*;
+    use bevy::log::tracing::Instrument;
 
     commands.entity(tilemap_id.0).instrument(info_span!("Generating children")).inner_mut().with_children(|parent| {
         for x in 0..size.x {

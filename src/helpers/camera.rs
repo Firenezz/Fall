@@ -5,9 +5,9 @@ use bevy::{input::{mouse::MouseWheel, ButtonInput}, math::Vec3, prelude::*, rend
 pub fn movement(
     time: Res<Time>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut query: Query<(&mut Transform, &mut OrthographicProjection), With<Camera>>,
+    mut query: Query<(&mut Transform, &mut Projection), With<Camera>>,
 ) {
-    for (mut transform, mut ortho) in query.iter_mut() {
+    for (mut transform, mut projection) in query.iter_mut() {
         let mut direction = Vec3::ZERO;
 
         if keyboard_input.pressed(KeyCode::KeyA) {
@@ -27,15 +27,28 @@ pub fn movement(
         }
 
         if keyboard_input.pressed(KeyCode::KeyZ) {
-            ortho.scale += 0.1;
+            match projection.as_mut() {
+                Projection::Orthographic(ortho) => {
+                    ortho.scale += 0.1;
+                }
+                _ => {}
+            }
         }
 
         if keyboard_input.pressed(KeyCode::KeyX) {
-            ortho.scale -= 0.1;
+            match projection.as_mut() {
+                Projection::Orthographic(ortho) => {
+                    ortho.scale -= 0.1;
+                }
+                _ => {}
+            }
         }
 
-        if ortho.scale < 0.5 {
-            ortho.scale = 0.5;
+        match projection.as_mut() {
+            Projection::Orthographic(ortho) if ortho.scale < 0.5 => {
+                ortho.scale = 0.5;
+            }
+            _ => {}
         }
 
         
@@ -50,19 +63,29 @@ pub fn movement(
 
 pub fn zoom_scroll(
     mut evr_scroll: EventReader<MouseWheel>,
-    mut query: Query<&mut OrthographicProjection, With<Camera>>,
+    mut query: Query<&mut Projection , With<Camera>>,
 ) {
     use bevy::input::mouse::MouseScrollUnit;
     for ev in evr_scroll.read() {
         match ev.unit {
             MouseScrollUnit::Line => {
                 for mut ortho in query.iter_mut() {
-                    ortho.scale += ev.y * 0.1;
+                    match ortho.as_mut() {
+                        Projection::Orthographic(ortho) => {
+                            ortho.scale += ev.y * 0.1;
+                        }
+                        _ => {}
+                    }
                 }
             }
             MouseScrollUnit::Pixel => {
                 for mut ortho in query.iter_mut() {
-                    ortho.scale += ev.y * 0.01;
+                    match ortho.as_mut() {
+                        Projection::Orthographic(ortho) => {
+                            ortho.scale += ev.y * 0.01;
+                        }
+                        _ => {}
+                    }
                 }
             }
         }

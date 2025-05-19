@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 bevy = { workspace = true, features = [
-    "trace"
+    "trace",
     ]}
 tracing = "0.1"
 bevy_ecs_tilemap = { workspace = true }

@@ -1,12 +1,9 @@
 pub mod tile;
 pub mod layer;
 
-use std::{rc::Rc, sync::Arc};
-
-use bevy::{prelude::*, utils::HashSet};
+use bevy::{prelude::*, platform::collections::HashSet};
 use bevy_ecs_tilemap::prelude::*;
 use layer::Layer;
-use tile::FallTileBundle;
 use rand::{rngs::ThreadRng, Rng};
 
 use crate::{loading::TextureAssets, GameState};
@@ -43,14 +40,14 @@ impl Default for SolidTiles {
 
 impl Default for GenerationSeed {
     fn default() -> Self {
-        let seed = rand::thread_rng().gen();
+        let seed = rand::rng().random();
         Self(seed)
     }
 }
 
 impl Default for SeededRng<ThreadRng> {
     fn default() -> Self {
-        Self(rand::thread_rng())
+        Self(rand::rng())
     }
 }
 
@@ -95,7 +92,7 @@ const CHUNK_SIZE: UVec2 = UVec2 { x: 32, y: 32 };
 
 fn drop_world(mut commands: Commands, tilemap_query: Query<Entity, With<TileStorage>>) {
     for tilemap_entity in tilemap_query.iter() {
-        commands.entity(tilemap_entity).despawn_recursive();
+        commands.entity(tilemap_entity).despawn();
     }
 }
 
