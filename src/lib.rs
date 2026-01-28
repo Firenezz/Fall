@@ -21,7 +21,6 @@ use bevy::app::App;
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use states::generation::GenerationState;
 
 // This example game uses States to separate logic
 // See https://bevy-cheatbook.github.io/programming/states.html
@@ -42,7 +41,7 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<GameState>()
-            .init_state::<GenerationState>().add_plugins((
+            .add_plugins((
             LoadingPlugin,
             MenuPlugin,
             ActionsPlugin,
@@ -54,7 +53,10 @@ impl Plugin for GamePlugin {
 
         #[cfg(debug_assertions)]
         {
+            use bevy_inspector_egui::bevy_egui::EguiPlugin;
+
             app
+                .add_plugins(EguiPlugin::default())
                 .add_plugins((WorldInspectorPlugin::default(), LogDiagnosticsPlugin::default()))
                 //.add_plugins(FrameTimeDiagnosticsPlugin);
                 ;

@@ -1,4 +1,4 @@
-use bevy::{input::{mouse::MouseWheel, ButtonInput}, math::Vec3, prelude::*, render::camera::Camera};
+use bevy::{input::{mouse::MouseWheel, ButtonInput}, math::Vec3, prelude::*};
 
 // A simple camera system for moving and zooming the camera.
 #[allow(dead_code)]
@@ -62,7 +62,7 @@ pub fn movement(
 }
 
 pub fn zoom_scroll(
-    mut evr_scroll: EventReader<MouseWheel>,
+    mut evr_scroll: MessageReader<MouseWheel>,
     mut query: Query<&mut Projection , With<Camera>>,
 ) {
     use bevy::input::mouse::MouseScrollUnit;

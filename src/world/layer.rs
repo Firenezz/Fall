@@ -1,4 +1,5 @@
-use bevy::{log::tracing, prelude::*};
+use bevy::prelude::*;
+use tracing;
 use bevy_ecs_tilemap::{map::{TilemapId, TilemapSize}, tiles::{TileBundle, TilePos, TileStorage}, TilemapBundle};
 use common::resources::MapSize;
 use crate::states::generation::GenerationState;
@@ -95,6 +96,8 @@ impl LayerBuilder {
             let tile_size = TilemapTileSize { x: 16.0, y: 16.0 };
             let grid_size = TilemapGridSize { x: size.x as f32 * tile_size.x, y: size.y as f32 * tile_size.y };
 
+            info!("LayerBuilder::build - size: {:?}, tile_size: {:?}, grid_size: {:?}", size, tile_size, grid_size);
+
             let mut tile_storage = TileStorage::empty(size.into());
             fill_layer(
                 TilemapId(layer_entity),
@@ -144,14 +147,18 @@ fn build_solid_layer(mut commands: Commands, size: Res<MapSize>, mut grid_query:
     use tracing::info;
 
     info!("Building solid layer");
+    info!("MapSize resource: {:?}", size.0);
 
+    let map_size = TilemapSize { x: size.0.x, y: size.0.y };
+    info!("TilemapSize created: {:?}", map_size);
+    
     let grid_entity = grid_query.single_mut()?;
 
     let layer_entity = 
         LayerBuilder::new()
             .with_name("Solid Layer")
             .with_type(LayerType::Solid)
-            .with_size(TilemapSize::from(size.into_inner().0))
+            .with_size(map_size)
             .build(&mut commands);
 
     commands.entity(grid_entity)

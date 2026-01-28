@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 
 pub mod temperature;
+pub mod config;
+pub mod systems;
 
 #[derive(Resource)]
 pub struct SimulationRate {

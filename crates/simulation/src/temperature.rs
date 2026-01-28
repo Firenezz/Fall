@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{ops::{Add, Sub, Mul, Div}, time::Duration, ops::{Deref, DerefMut}};
 
 use bevy::prelude::*;
 use bevy_ecs_tilemap::tiles::TileStorage;
@@ -8,10 +8,25 @@ use bevy_ecs_tilemap::prelude::TilePos;
 
 use crate::SimulationRate;
 
-#[derive(Component, Default, Reflect, Debug, PartialEq, PartialOrd)]
+pub trait Celcius {
+    fn to_kelvin(&self) -> f32;
+    fn from_kelvin(&self) -> f32;
+}
+
+impl Celcius for Temperature {
+    fn to_kelvin(&self) -> f32 {
+        self + 273.15f32
+    }
+    fn from_kelvin(&self) -> f32 {
+        self - 273.15f32
+    }
+}
+
+#[derive(Component, Reflect, Debug, PartialEq, PartialOrd)]
 #[reflect(Component)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Temperature {
+    // Temperature in Kelvin (K)
     pub value: f32,
 }
 
@@ -22,6 +37,81 @@ impl Temperature {
 
     pub fn get_temperature(&self) -> f32 {
         self.value
+    }
+}
+
+impl Deref for Temperature {
+    type Target = f32;
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl DerefMut for Temperature {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
+    }
+}
+
+impl Add<f32> for Temperature {
+    type Output = Self;
+    fn add(self, other: f32) -> Self {
+        Self { value: self.value + other }
+    }
+}
+
+impl Sub<f32> for Temperature {
+    type Output = Self;
+    fn sub(self, other: f32) -> Self {
+        Self { value: self.value - other }
+    }
+}
+
+impl Add<Temperature> for Temperature {
+    type Output = Self;
+    fn add(self, other: Temperature) -> Self {
+        Self { value: self.value + other.value }
+    }
+}
+
+impl Sub<Temperature> for Temperature {
+    type Output = Self;
+    fn sub(self, other: Temperature) -> Self {
+        Self { value: self.value - other.value }
+    }
+}
+
+impl Mul<f32> for Temperature {
+    type Output = Self;
+    fn mul(self, other: f32) -> Self {
+        Self { value: self.value * other }
+    }
+}
+
+impl Div<f32> for Temperature {
+    type Output = Self;
+    fn div(self, other: f32) -> Self {
+        Self { value: self.value / other }
+    }
+}
+
+impl Mul<Temperature> for Temperature {
+    type Output = Self;
+    fn mul(self, other: Temperature) -> Self {
+        Self { value: self.value * other.value }
+    }
+}
+
+impl Div<Temperature> for Temperature {
+    type Output = Self;
+    fn div(self, other: Temperature) -> Self {
+        Self { value: self.value / other.value }
+    }
+}
+
+impl Default for Temperature {
+    fn default() -> Self {
+        Self { value: 273.15 }
     }
 }
 
