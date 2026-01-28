@@ -2,46 +2,48 @@ use std::{ops::{Add, Sub, Mul, Div}, time::Duration, ops::{Deref, DerefMut}};
 
 use bevy::prelude::*;
 use bevy_ecs_tilemap::tiles::TileStorage;
-use common::resources::MapSize;
+use common::{resources::MapSize, units::temperature::Kelvin};
 
 use bevy_ecs_tilemap::prelude::TilePos;
 
 use crate::SimulationRate;
-
-pub trait Celcius {
-    fn to_kelvin(&self) -> f32;
-    fn from_kelvin(&self) -> f32;
-}
-
-impl Celcius for Temperature {
-    fn to_kelvin(&self) -> f32 {
-        self + 273.15f32
-    }
-    fn from_kelvin(&self) -> f32 {
-        self - 273.15f32
-    }
-}
 
 #[derive(Component, Reflect, Debug, PartialEq, PartialOrd)]
 #[reflect(Component)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Temperature {
     // Temperature in Kelvin (K)
-    pub value: f32,
+    pub value: Kelvin,
 }
 
 impl Temperature {
-    pub fn set_temperature(&mut self, value: f32) {
+    pub fn new(value: Kelvin) -> Self {
+        Self { value }
+    }
+
+    pub fn set_temperature(&mut self, value: Kelvin) {
         self.value = value;
     }
 
-    pub fn get_temperature(&self) -> f32 {
+    pub fn get_temperature(&self) -> Kelvin {
         self.value
     }
 }
 
+impl AsRef<Kelvin> for Temperature {
+    fn as_ref(&self) -> &Kelvin {
+        &self.value
+    }
+}
+
+impl AsMut<Kelvin> for Temperature {
+    fn as_mut(&mut self) -> &mut Kelvin {
+        &mut self.value
+    }
+}
+
 impl Deref for Temperature {
-    type Target = f32;
+    type Target = Kelvin;
     fn deref(&self) -> &Self::Target {
         &self.value
     }
@@ -53,65 +55,51 @@ impl DerefMut for Temperature {
     }
 }
 
-impl Add<f32> for Temperature {
-    type Output = Self;
-    fn add(self, other: f32) -> Self {
-        Self { value: self.value + other }
+impl Add<Kelvin> for &Temperature {
+    type Output = Kelvin;
+    fn add(self, other: Kelvin) -> Self::Output {
+        self.value + other
     }
 }
 
-impl Sub<f32> for Temperature {
-    type Output = Self;
-    fn sub(self, other: f32) -> Self {
-        Self { value: self.value - other }
+impl Sub<Kelvin> for &Temperature {
+    type Output = Kelvin;
+    fn sub(self, other: Kelvin) -> Self::Output {
+        self.value - other
     }
 }
 
-impl Add<Temperature> for Temperature {
-    type Output = Self;
-    fn add(self, other: Temperature) -> Self {
-        Self { value: self.value + other.value }
+impl Add<Temperature> for &Temperature {
+    type Output = Kelvin;
+    fn add(self, other: Temperature) -> Self::Output {
+        self.value + other.value
     }
 }
 
-impl Sub<Temperature> for Temperature {
-    type Output = Self;
-    fn sub(self, other: Temperature) -> Self {
-        Self { value: self.value - other.value }
+impl Sub<Temperature> for &Temperature {
+    type Output = Kelvin;
+    fn sub(self, other: Temperature) -> Self::Output {
+        self.value - other.value
     }
 }
 
-impl Mul<f32> for Temperature {
-    type Output = Self;
-    fn mul(self, other: f32) -> Self {
-        Self { value: self.value * other }
+impl Mul<f32> for &Temperature {
+    type Output = Kelvin;
+    fn mul(self, other: f32) -> Self::Output {
+        self.value * other
     }
 }
 
-impl Div<f32> for Temperature {
-    type Output = Self;
-    fn div(self, other: f32) -> Self {
-        Self { value: self.value / other }
-    }
-}
-
-impl Mul<Temperature> for Temperature {
-    type Output = Self;
-    fn mul(self, other: Temperature) -> Self {
-        Self { value: self.value * other.value }
-    }
-}
-
-impl Div<Temperature> for Temperature {
-    type Output = Self;
-    fn div(self, other: Temperature) -> Self {
-        Self { value: self.value / other.value }
+impl Div<f32> for &Temperature {
+    type Output = Kelvin;
+    fn div(self, other: f32) -> Self::Output {
+        self.value / other
     }
 }
 
 impl Default for Temperature {
     fn default() -> Self {
-        Self { value: 273.15 }
+        Self { value: Kelvin::default() }
     }
 }
 

@@ -8,7 +8,7 @@ use bevy::window::PrimaryWindow;
 use bevy::winit::{WINIT_WINDOWS, WinitWindows};
 use bevy::DefaultPlugins;
 use bevy_framepace::FramepacePlugin;
-use tile_game::GamePlugin;
+use fall::GamePlugin;
 use std::io::Cursor;
 use winit::window::Icon;
 
@@ -19,7 +19,7 @@ fn main() {
             DefaultPlugins
                 .set(WindowPlugin {
                     primary_window: Some(Window {
-                        title: "Tile game".to_string(), // ToDo
+                        title: "Fall".to_string(), // ToDo
                         // Bind to canvas included in `index.html`
                         canvas: Some("#bevy".to_owned()),
                         fit_canvas_to_parent: true,
@@ -35,7 +35,7 @@ fn main() {
                 }),
         )
         .add_plugins(GamePlugin)
-        .add_plugins(FramepacePlugin)
+        //.add_plugins(FramepacePlugin)
         .add_systems(Startup, set_window_icon)
         .run();
 }

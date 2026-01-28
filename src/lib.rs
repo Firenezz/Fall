@@ -9,18 +9,19 @@ mod world;
 mod helpers;
 mod resources;
 mod states;
+mod sandbox;
 
 use crate::actions::ActionsPlugin;
 use crate::audio::InternalAudioPlugin;
 use crate::loading::LoadingPlugin;
 use crate::menu::MenuPlugin;
 use crate::player::PlayerPlugin;
+use crate::sandbox::SandboxPlugin;
 
 use bevy::app::App;
 #[cfg(debug_assertions)]
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 // This example game uses States to separate logic
 // See https://bevy-cheatbook.github.io/programming/states.html
@@ -47,17 +48,23 @@ impl Plugin for GamePlugin {
             ActionsPlugin,
             InternalAudioPlugin,
             PlayerPlugin,
+            SandboxPlugin,
             world::WorldPlugin,
             simulation::SimulationPlugin,
         ));
 
-        #[cfg(debug_assertions)]
+        //app.insert_resource(GizmoConfigStore::default());
+
+        #[cfg(any(debug_assertions, feature = "debug_mode"))]
         {
-            use bevy_inspector_egui::bevy_egui::EguiPlugin;
+            use bevy_inspector_egui::{bevy_egui::EguiPlugin, quick::ResourceInspectorPlugin};
+
+            println!("Adding EguiPlugin");
 
             app
                 .add_plugins(EguiPlugin::default())
-                .add_plugins((WorldInspectorPlugin::default(), LogDiagnosticsPlugin::default()))
+                .add_plugins(ResourceInspectorPlugin::<GizmoConfigStore>::default())
+                .add_plugins((bevy_inspector_egui::quick::WorldInspectorPlugin::default(), LogDiagnosticsPlugin::default()))
                 //.add_plugins(FrameTimeDiagnosticsPlugin);
                 ;
         }
