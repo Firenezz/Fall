@@ -106,8 +106,11 @@ impl LayerBuilder {
                 &mut tile_storage,
             );
 
+            let tilemap_size = TilemapSize { x: size.x, y: size.y };
+
             commands.entity(layer_entity).insert(TilemapBundle {
                 grid_size,
+                size: tilemap_size,
                 tile_size,
                 storage: tile_storage,
                 ..Default::default()

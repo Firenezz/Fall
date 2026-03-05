@@ -27,7 +27,14 @@ bevy_reflect = { version = "0.18" }
 tracing = "0.1"
 
 # Debugging
-bevy-inspector-egui = "0.36.0" 
+bevy-inspector-egui = {version = "0.36.0" , default-features = false, features = [
+    "documentation",
+    "bevy_core_pipeline",
+    "bevy_image",
+    "bevy_pbr",
+    "bevy_render",
+    "egui_clipboard",
+]}
 
 [profile.dev.package."*"]
 opt-level = 3
@@ -75,47 +82,30 @@ release_mode = [
 #   and android_shared_stdcxx/android-game-activity, since those are covered in `mobile`
 [dependencies]
 bevy = { workspace = true, default-features = false, features = [
-    "gltf_animation",
-    "bevy_asset",
-    "bevy_color",
-    "bevy_core_pipeline",
+    "default_app",
+    "2d_api",
+    "2d_bevy_render",
+    "3d_api",
+    "3d_bevy_render",
+    "ui_api",
+    "ui_bevy_render",
+    "scene",
+    "picking",
     "bevy_gilrs",
-    "bevy_gizmos",
-    "bevy_gltf",
-    "mesh_picking",
-    #"bevy_pbr", # deactivated until we actually use it
-    "bevy_picking",
-    "bevy_render",
-    "bevy_scene",
-    "bevy_sprite",
-    "sprite_picking",
-    "bevy_state",
-    "bevy_text",
-    "bevy_ui",
-    "ui_picking",
-    "bevy_window",
     "bevy_winit",
-    "custom_cursor",
     "default_font",
-    "hdr",
-    "multi_threaded", # Deactivate multithreading if commented out
-    "png",
-    "smaa_luts",
-    "sysinfo_plugin",
-    "tonemapping_luts",
+    "multi_threaded",
     "webgl2",
     "x11",
     "wayland",
-    "std",
-    "async_executor",
-    "zstd_rust",
+    "sysinfo_plugin",
 
     "track_location",
     "trace"
 ] }
 bevy_kira_audio = { version = "0.25.0", features = ["android_shared_stdcxx"] }
 bevy_asset_loader = { version = "0.25.0" }
-rand = { version = "0.9.2" }
+rand = { version = "0.9" }
 webbrowser = { version = "1", features = ["hardened"] }
 
 # keep the following in sync with Bevy's dependencies
@@ -129,7 +119,7 @@ bevy_mod_debugdump = { version = "0.15.0", optional = true }
 
 # Game dependencies
 bevy_ecs_tilemap = { workspace = true }
-bevy-inspector-egui = { workspace = true }
+bevy-inspector-egui = { workspace = true}
 bevy_editor_pls = { version = "0.10.0" }
 bevy_framepace = "0.20.0"
 tracing = { workspace = true }

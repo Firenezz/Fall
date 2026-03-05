@@ -9,6 +9,7 @@ bevy = { workspace = true, features = [
 ], default-features = false}
 tracing = "0.1"
 bevy_ecs_tilemap = { workspace = true }
+auto_ops = { version = "0.3.0" }
 
 [features]
 default = [

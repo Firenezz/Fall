@@ -84,6 +84,28 @@ You should check out the Bevy website for [links to resources][bevy-learn] and t
 
 Audio in web-builds can have issues in some browsers. This seems to be a general performance issue and not due to the audio itself (see [bevy_kira_audio/#9][firefox-sound-issue]).
 
+## Vulkan Validation Warnings
+
+If you see Vulkan validation errors like `VUID-StandaloneSpirv-MemorySemantics-10871`, this is a known false positive from newer Vulkan validation layers with Bevy/wgpu (see [bevyengine/bevy#21512](https://github.com/bevyengine/bevy/issues/21512)). This warning does not affect functionality.
+
+To suppress these warnings, you can:
+
+1. **Use the provided script:**
+   ```bash
+   source suppress_vulkan_warning.sh
+   cargo run
+   ```
+
+2. **Set environment variable:**
+   ```bash
+   export VK_LAYER_MESSAGE_FILTER_FILE="$(pwd)/vk_layer_settings.txt"
+   cargo run
+   ```
+
+3. **Downgrade Vulkan validation layers** (if available on your system)
+
+The warnings are harmless and can be safely ignored during development.
+
 # License
 
 This project is licensed under [CC0 1.0 Universal](LICENSE) except some content of `assets` and the Bevy icons in the `build` directory (see [Credits](credits/CREDITS.md)). Go crazy and feel free to show me whatever you build with this ([@nikl_me][nikl-twitter] / [@nikl_me@mastodon.online][nikl-mastodon] ).

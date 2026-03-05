@@ -1,6 +1,7 @@
 use std::{ops::{Add, Sub, Mul, Div}, time::Duration, ops::{Deref, DerefMut}};
 
 use bevy::prelude::*;
+use bevy::utils::Parallel;
 use bevy_ecs_tilemap::tiles::TileStorage;
 use common::{resources::MapSize, units::temperature::Kelvin};
 
@@ -17,8 +18,8 @@ pub struct Temperature {
 }
 
 impl Temperature {
-    pub fn new(value: Kelvin) -> Self {
-        Self { value }
+    pub fn new(value: impl Into<Kelvin>) -> Self {
+        Self { value: value.into() }
     }
 
     pub fn set_temperature(&mut self, value: Kelvin) {
@@ -147,10 +148,10 @@ pub fn calculate_heat_transfer(
     // Calculate temperature difference (ΔT)
     let temp_diff = cell2.temperature.value - cell1.temperature.value;
     
-    // Calculate heat transfer using simplified Fourier's Law: q = -k * ΔT
-    // Then multiply by time and divide by 2 since heat is shared between two cells
-    // The negative sign ensures heat flows from hot to cold
-    let heat_transfer = avg_conductivity * temp_diff * dt.as_secs_f32() * transfer_coefficient * 0.5;
+    // Calculate heat transfer using simplified Fourier's Law: q = k * ΔT * dt
+    // Heat flows from hot to cold (positive temp_diff means heat flows from cell2 to cell1)
+    // The transfer_coefficient controls the rate of heat transfer (0.0 to 1.0)
+    let heat_transfer = avg_conductivity * temp_diff * dt.as_secs_f32() * transfer_coefficient;
 
     debug!("Heat transfer: {}", heat_transfer);
     
@@ -158,10 +159,7 @@ pub fn calculate_heat_transfer(
     // Heat flows from hot to cold, so:
     // Hot cell loses heat (negative)
     // Cold cell gains heat (positive)
-    (
-        heat_transfer,
-        -heat_transfer
-    )
+    (heat_transfer.get_value(), -heat_transfer.get_value())
 }
 
 pub struct ThermalPlugin;
@@ -182,35 +180,47 @@ fn thermal_conduction(
     mut simulation_rate: ResMut<SimulationRate>,
     size: Res<MapSize>,
     time: Res<Time>,
+    mut thread_changes: Local<Parallel<Vec<(usize, f32)>>>,
 ) {
     simulation_rate.rate.tick(time.delta());
     if simulation_rate.rate.just_finished() {
         use bevy_ecs_tilemap::helpers::square_grid::neighbors::Neighbors;
         let map_size = bevy_ecs_tilemap::map::TilemapSize::from(size.into_inner().0);
         let mut temp_accumulators = vec![0.0; (map_size.x * map_size.y) as usize];
-        
-        // First pass: collect all temperature changes
-        for (child_of, heat_cell, tile_pos) in tile_heat_query.iter() {
+
+        // First pass: collect temperature changes in parallel using thread-local buffers
+        // (avoids Mutex contention; see docs/MULTITHREADING_BEVY.md)
+        tile_heat_query.par_iter().for_each(|(child_of, heat_cell, tile_pos)| {
+            let mut local = thread_changes.borrow_local_mut();
             if let Ok(tile_storage) = layer_query.get(child_of.parent()) {
+                let current_index = tile_pos.to_index(&map_size) as usize;
                 let neighbors = Neighbors::get_square_neighboring_positions(tile_pos, &map_size, false)
                     .entities(tile_storage);
-                
+
                 for neighbor in neighbors.iter() {
-                    if let Ok((child_of_neighbor, neighbor_cell, neighbor_pos)) = tile_heat_query.get(*neighbor) {
-                        let (new_temp1, new_temp2) = calculate_heat_transfer(heat_cell, neighbor_cell, time.delta(), 0.5);
-                        temp_accumulators[tile_pos.to_index(&map_size)] += new_temp1;
-                        // Update neighbor changes
-                        temp_accumulators[neighbor_pos.to_index(&map_size)] += new_temp2;
+                    if let Ok((_child_of_neighbor, neighbor_cell, neighbor_pos)) = tile_heat_query.get(*neighbor) {
+                        let neighbor_index = neighbor_pos.to_index(&map_size) as usize;
+                        if neighbor_index > current_index {
+                            let (delta1, delta2) = calculate_heat_transfer(heat_cell, neighbor_cell, time.delta(), 0.5);
+                            local.push((current_index, delta1));
+                            local.push((neighbor_index, delta2));
+                        }
                     }
                 }
             }
+        });
+
+        let mut all_changes = Vec::new();
+        thread_changes.drain_into(&mut all_changes);
+        for (index, change) in all_changes {
+            temp_accumulators[index] += change;
         }
-        
-        // Second pass: apply all temperature changes
-        for (_, mut heat_cell, tile_pos) in tile_heat_query.iter_mut() {
-            let index = tile_pos.to_index(&map_size);
+
+        // Second pass: apply all temperature changes in parallel
+        tile_heat_query.par_iter_mut().for_each(|(_, mut heat_cell, tile_pos)| {
+            let index = tile_pos.to_index(&map_size) as usize;
             heat_cell.temperature.value += temp_accumulators[index];
-        }
+        });
     }
 }
 
@@ -244,7 +254,7 @@ mod tests {
         eprintln!("\nAll components:");
         if let Some(archetype) = world.archetypes().get(world.entity(entity).archetype().id()) {
             for component_id in archetype.components() {
-                if let Some(component_info) = world.components().get_info(component_id) {
+                if let Some(component_info) = world.components().get_info(*component_id) {
                     eprintln!("- {:?}", component_info.name());
                 }
             }
@@ -290,9 +300,9 @@ mod tests {
                 
                 // Set center tile to hot, others to cool
                 if x == 1 && y == 1 {
-                    heat_cell.temperature.value = 100.0; // Center tile is hot
+                    heat_cell.temperature.value = Kelvin::new(100.0); // Center tile is hot
                 } else {
-                    heat_cell.temperature.value = 0.0; // Surrounding tiles are cool
+                    heat_cell.temperature.value = Kelvin::new(0.0); // Surrounding tiles are cool
                 }
                 
                 // Spawn tile as a child of the tilemap
@@ -323,11 +333,11 @@ mod tests {
     #[test]
     fn test_calculate_heat_transfer() {
         let cell1 = HeatCell {
-            temperature: Temperature { value: 100.0 },
+            temperature: Temperature { value: Kelvin::new(100.0) },
             conductivity: ThermalConductivity { value: 1.0 },
         };
         let cell2 = HeatCell {
-            temperature: Temperature { value: 0.0 },
+            temperature: Temperature { value: Kelvin::new(0.0) },
             conductivity: ThermalConductivity { value: 1.0 },
         };
         
@@ -337,10 +347,10 @@ mod tests {
         let (cell1_new_temp, cell2_new_temp) = calculate_heat_transfer(&cell1, &cell2, dt, transfer_coefficient);
 
         // With temp_diff = -100, conductivity = 1.0, dt = 1.0, transfer_coefficient = 1.0
-        // heat_transfer = 1.0 * -100 * 1.0 * 1.0 * 0.5 = -50
-        // So cell1 (hot) should lose 50°C and cell2 (cold) should gain 50°C
-        assert_eq!(cell1_new_temp, -50.0);
-        assert_eq!(cell2_new_temp, 50.0);
+        // heat_transfer = 1.0 * -100 * 1.0 * 1.0 = -100
+        // So cell1 (hot) should lose 100°C and cell2 (cold) should gain 100°C
+        assert_eq!(cell1_new_temp, -100.0);
+        assert_eq!(cell2_new_temp, 100.0);
     }
 
     #[test]
@@ -372,12 +382,12 @@ mod tests {
         
         // Check center tile (should have cooled down)
         let center_tile = tiles.iter().find(|(_, pos)| pos.x == 1 && pos.y == 1).unwrap();
-        assert!(center_tile.0.temperature.value < 100.0, "Center tile should have cooled down");
+        assert!(center_tile.0.temperature.value.get_value() < 100.0, "Center tile should have cooled down");
         
         // Check surrounding tiles (should have warmed up)
         for (heat_cell, pos) in tiles.iter() {
             if pos.x != 1 || pos.y != 1 {
-                assert!(heat_cell.temperature.value > 0.0, "Surrounding tiles should have warmed up");
+                assert!(heat_cell.temperature.value.get_value() > 0.0, "Surrounding tiles should have warmed up");
             }
         }
     }

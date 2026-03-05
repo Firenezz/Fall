@@ -1,8 +1,8 @@
 use bevy::app::Plugin;
 
-pub struct TemperaturePlugin;
+pub struct TemperatureSystemPlugin;
 
-impl Plugin for TemperaturePlugin {
+impl Plugin for TemperatureSystemPlugin {
     fn build(&self, app: &mut bevy::app::App) {
         todo!()
     }

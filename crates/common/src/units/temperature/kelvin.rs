@@ -1,6 +1,6 @@
 use std::{
     fmt::Display,
-    ops::{Deref, DerefMut, Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign}
+    ops::{Deref, DerefMut}
 };
 
 use crate::units::temperature::*;
@@ -13,8 +13,33 @@ use bevy::prelude::ReflectDefault;
 pub struct Kelvin(pub(crate) TemperatureValue);
 
 impl Kelvin {
+    /// Creates a new Kelvin value, clamping negative values to 0.0
+    /// Use this for absolute temperatures (which cannot be negative)
     pub fn new(value: TemperatureValue) -> Self {
+        if value.is_sign_negative() {
+            bevy::log::error!("Temperature value is negative: {}", value);
+            return Self(0.0);
+        }
         Self(value)
+    }
+
+    /// Creates a new Kelvin value without validation
+    /// Use this for temperature differences or internal arithmetic operations
+    /// where negative values are valid (e.g., temperature differences)
+    pub(crate) fn new_unchecked(value: TemperatureValue) -> Self {
+        Self(value)
+    }
+
+    pub fn get_value(&self) -> TemperatureValue {
+        self.0
+    }
+
+    pub fn set_value(&mut self, value: TemperatureValue) {
+        if value.is_sign_negative() {
+            bevy::log::error!("Temperature value is negative: {}", value);
+            return;
+        }
+        self.0 = value;
     }
 }
 
@@ -76,140 +101,54 @@ impl Default for Kelvin {
 
 // Operations with &Kelvin and TemperatureValue
 
-impl Add<TemperatureValue> for &Kelvin {
-    type Output = Kelvin;
-    fn add(self, other: TemperatureValue) -> Self::Output {
-        Kelvin::new(self.0 + other)
-    }
-}
+auto_ops::impl_op_ex_commutative!(+ |left: &Kelvin, right: &TemperatureValue| -> Kelvin {
+    Kelvin::new_unchecked(left.0 + right)
+});
 
-impl Sub<TemperatureValue> for &Kelvin {
-    type Output = Kelvin;
-    fn sub(self, other: TemperatureValue) -> Self::Output {
-        Kelvin::new(self.0 - other)
-    }
-}
+auto_ops::impl_op_ex!(- |left: &Kelvin, right: &TemperatureValue| -> Kelvin {
+    Kelvin::new_unchecked(left.0 - right)
+});
 
-impl Mul<TemperatureValue> for &Kelvin {
-    type Output = Kelvin;
-    fn mul(self, other: TemperatureValue) -> Self::Output {
-        Kelvin::new(self.0 * other)
-    }
-}
+auto_ops::impl_op_ex_commutative!(* |left: &Kelvin, right: &TemperatureValue| -> Kelvin {
+    Kelvin::new_unchecked(left.0 * right)
+});
 
-impl Div<TemperatureValue> for &Kelvin {
-    type Output = Kelvin;
-    fn div(self, other: TemperatureValue) -> Self::Output {
-        Kelvin::new(self.0 / other)
-    }
-}
+auto_ops::impl_op_ex!(/ |left: &Kelvin, right: &TemperatureValue| -> Kelvin {
+    Kelvin::new_unchecked(left.0 / right)
+});
 
-// Operations with owned Kelvin and TemperatureValue
+// Operations with Kelvin and Kelvin
 
-impl Add<TemperatureValue> for Kelvin {
-    type Output = Kelvin;
-    fn add(self, other: TemperatureValue) -> Self::Output {
-        Kelvin::new(self.0 + other)
-    }
-}
+auto_ops::impl_op_ex!(+ |left: &Kelvin, right: &Kelvin| -> Kelvin {
+    Kelvin::new_unchecked(left.0 + right.0)
+});
 
-impl Sub<TemperatureValue> for Kelvin {
-    type Output = Kelvin;
-    fn sub(self, other: TemperatureValue) -> Self::Output {
-        Kelvin::new(self.0 - other)
-    }
-}
+auto_ops::impl_op_ex!(- |left: &Kelvin, right: &Kelvin| -> Kelvin {
+    Kelvin::new_unchecked(left.0 - right.0)
+});
 
-impl Mul<TemperatureValue> for Kelvin {
-    type Output = Kelvin;
-    fn mul(self, other: TemperatureValue) -> Self::Output {
-        Kelvin::new(self.0 * other)
-    }
-}
+auto_ops::impl_op_ex!(* |left: &Kelvin, right: &Kelvin| -> Kelvin {
+    Kelvin::new_unchecked(left.0 * right.0)
+});
 
-impl Div<TemperatureValue> for Kelvin {
-    type Output = Kelvin;
-    fn div(self, other: TemperatureValue) -> Self::Output {
-        Kelvin::new(self.0 / other)
-    }
-}
-
-// Operations with &Kelvin and Kelvin
-
-impl Add<Kelvin> for &Kelvin {
-    type Output = f32;
-    fn add(self, other: Kelvin) -> Self::Output {
-        self.0 + other.0
-    }
-}
-
-impl Sub<Kelvin> for &Kelvin {
-    type Output = f32;
-    fn sub(self, other: Kelvin) -> Self::Output {
-        self.0 - other.0
-    }
-}
-
-impl Add<Kelvin> for Kelvin {
-    type Output = Kelvin;
-    fn add(self, other: Kelvin) -> Self::Output {
-        Kelvin::new(self.0 + other.0)
-    }
-}
-
-impl Sub<Kelvin> for Kelvin {
-    type Output = Kelvin;
-    fn sub(self, other: Kelvin) -> Self::Output {
-        Kelvin::new(self.0 - other.0)
-    }
-}
+auto_ops::impl_op_ex!(/ |left: &Kelvin, right: &Kelvin| -> Kelvin {
+    Kelvin::new_unchecked(left.0 / right.0)
+});
 
 // Assignments
 
-impl AddAssign<TemperatureValue> for Kelvin {
-    fn add_assign(&mut self, other: TemperatureValue) {
-        *self = *self + other;
-    }
-}
+auto_ops::impl_op_ex!(+= |left: &mut Kelvin, right: &TemperatureValue| {
+    left.0 += *right;
+});
 
-impl SubAssign<TemperatureValue> for Kelvin {
-    fn sub_assign(&mut self, other: TemperatureValue) {
-        *self = *self - other;
-    }
-}
+auto_ops::impl_op_ex!(-= |left: &mut Kelvin, right: &TemperatureValue| {
+    left.0 -= *right
+});
 
-impl MulAssign<TemperatureValue> for Kelvin {
-    fn mul_assign(&mut self, other: TemperatureValue) {
-        *self = *self * other;
-    }
-}
+auto_ops::impl_op_ex!(*= |left: &mut Kelvin, right: &TemperatureValue| {
+    left.0 *= *right
+});
 
-impl DivAssign<TemperatureValue> for Kelvin {
-    fn div_assign(&mut self, other: TemperatureValue) {
-        *self = *self / other;
-    }
-}
-
-impl AddAssign<Kelvin> for &Kelvin {
-    fn add_assign(&mut self, other: Kelvin) {
-        *self = *self + other;
-    }
-}
-
-impl SubAssign<Kelvin> for &mut Kelvin {
-    fn sub_assign(&mut self, other: Kelvin) {
-        *self = *self - other;
-    }
-}
-
-impl MulAssign<Kelvin> for &mut Kelvin {
-    fn mul_assign(&mut self, other: Kelvin) {
-        *self = *self * other;
-    }
-}
-
-impl DivAssign<Kelvin> for &mut Kelvin {
-    fn div_assign(&mut self, other: Kelvin) {
-        *self = *self / other;
-    }
-}
+auto_ops::impl_op_ex!(/= |left: &mut Kelvin, right: &TemperatureValue| {
+    left.0 /= *right
+});

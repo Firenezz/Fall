@@ -32,7 +32,7 @@ fn main() {
                 .set(AssetPlugin {
                     meta_check: AssetMetaCheck::Never,
                     ..default()
-                }),
+                })
         )
         .add_plugins(GamePlugin)
         //.add_plugins(FramepacePlugin)

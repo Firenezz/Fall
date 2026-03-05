@@ -7,10 +7,10 @@ pub struct SandboxPlugin;
 
 impl Plugin for SandboxPlugin {
     fn build(&self, app: &mut App) {
-        todo!()
+        app.add_systems(Startup, temperature_sandbox);
     }
 }
 
 pub fn temperature_sandbox(mut commands: Commands) {
-    commands.spawn(Temperature { value: 20.0 });
+    commands.spawn(Temperature::new(Celsius::new(20.0)));
 }
