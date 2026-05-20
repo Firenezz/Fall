@@ -59,6 +59,9 @@ sudo apt-get install --no-install-recommends \
 
 You will also want a working **Vulkan** stack (Mesa drivers on most distros are enough). If the game fails to create a window or GPU context, install your distribution’s Mesa/Vulkan packages and verify with `vulkaninfo` if needed.
 
+Depending on your graphics card, you may have to install one of the following:
+`vulkan-radeon`, `vulkan-intel`, or `mesa-vulkan-drivers`
+
 [`/.cargo/config.toml`](.cargo/config.toml) configures the **mold** linker on `x86_64-unknown-linux-gnu` for faster links. Install `mold` and `clang` as above; without mold, you can comment out the `-Clink-arg=-fuse-ld=mold` lines in that file and use the system default linker instead.
 
 ### Optional: web (Wasm) tooling

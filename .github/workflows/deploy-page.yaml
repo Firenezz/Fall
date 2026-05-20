@@ -13,6 +13,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Cargo Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ubuntu-latest-cargo-deploy-page-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Install rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
@@ -26,17 +37,6 @@ jobs:
       - name: Add wasm target
         run: |
           rustup target add wasm32-unknown-unknown
-
-      - name: Cargo Cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build Release
         run: |
