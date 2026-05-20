@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use tracing;
-use bevy_ecs_tilemap::{map::{TilemapId, TilemapSize}, tiles::{TileBundle, TileColor, TilePos, TileStorage}, TilemapBundle};
+use bevy_ecs_tilemap::{map::TilemapSize, tiles::{TileBundle, TileColor, TilePos, TileStorage}};
 use common::{resources::MapSize, units::temperature::{Celsius, Kelvin}};
 use crate::{loading::TextureAssets, states::generation::GenerationState};
 use simulation::temperature::{HeatCell, Temperature, ThermalConductivity};
@@ -38,16 +38,12 @@ impl Default for Layer {
 
 
 #[derive(Bundle)]
+#[derive(Default)]
 pub struct LayerBundle {
     layer: Layer,
     tilemap_storage: TileStorage,
 }
 
-impl Default for LayerBundle {
-    fn default() -> Self {
-        Self { layer: Layer::default(), tilemap_storage: TileStorage::default() }
-    }
-}
 
 pub enum Texture {
     String(String),
@@ -107,7 +103,7 @@ impl LayerBuilder {
 
         let layer_entity = commands.spawn(LayerBundle::default()).id();
         let texture = match self.texture {
-            Some(Texture::String(name)) => {
+            Some(Texture::String(_name)) => {
                 resources.tile_atlas.clone()
             }
             Some(Texture::Handle(handle)) => handle,
@@ -129,7 +125,7 @@ impl LayerBuilder {
 
             info!("LayerBuilder::build - size: {:?}, tile_size: {:?}, grid_size: {:?}", size, tile_size, grid_size);
 
-            let mut tile_storage = TileStorage::empty(size.into());
+            let mut tile_storage = TileStorage::empty(size);
             helpers::filling::fill_tilemap(TileTextureIndex(5), size, TilemapId(layer_entity), commands, &mut tile_storage);
 
             let tilemap_size = TilemapSize { x: size.x, y: size.y };
@@ -215,7 +211,7 @@ fn populate_layer_heat_cells(
     mut commands: Commands,
     layer_query: Query<(&Layer, &TileStorage, &TilemapSize), Added<TileStorage>>,
 ) {
-    for (layer, tile_storage, size) in &layer_query {
+    for (_layer, tile_storage, size) in &layer_query {
 
         for x in 0..size.x {
             for y in 0..size.y {

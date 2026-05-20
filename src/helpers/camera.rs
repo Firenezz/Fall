@@ -26,23 +26,15 @@ pub fn movement(
             direction -= Vec3::new(0.0, 1.0, 0.0);
         }
 
-        if keyboard_input.pressed(KeyCode::KeyZ) {
-            match projection.as_mut() {
-                Projection::Orthographic(ortho) => {
-                    ortho.scale += 0.1;
-                }
-                _ => {}
+        if keyboard_input.pressed(KeyCode::KeyZ)
+            && let Projection::Orthographic(ortho) = projection.as_mut() {
+                ortho.scale += 0.1;
             }
-        }
 
-        if keyboard_input.pressed(KeyCode::KeyX) {
-            match projection.as_mut() {
-                Projection::Orthographic(ortho) => {
-                    ortho.scale -= 0.1;
-                }
-                _ => {}
+        if keyboard_input.pressed(KeyCode::KeyX)
+            && let Projection::Orthographic(ortho) = projection.as_mut() {
+                ortho.scale -= 0.1;
             }
-        }
 
         match projection.as_mut() {
             Projection::Orthographic(ortho) if ortho.scale < 0.5 => {
@@ -70,21 +62,15 @@ pub fn zoom_scroll(
         match ev.unit {
             MouseScrollUnit::Line => {
                 for mut ortho in query.iter_mut() {
-                    match ortho.as_mut() {
-                        Projection::Orthographic(ortho) => {
-                            ortho.scale += ev.y * 0.1;
-                        }
-                        _ => {}
+                    if let Projection::Orthographic(ortho) = ortho.as_mut() {
+                        ortho.scale += ev.y * 0.1;
                     }
                 }
             }
             MouseScrollUnit::Pixel => {
                 for mut ortho in query.iter_mut() {
-                    match ortho.as_mut() {
-                        Projection::Orthographic(ortho) => {
-                            ortho.scale += ev.y * 0.01;
-                        }
-                        _ => {}
+                    if let Projection::Orthographic(ortho) = ortho.as_mut() {
+                        ortho.scale += ev.y * 0.01;
                     }
                 }
             }

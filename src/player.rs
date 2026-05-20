@@ -17,7 +17,7 @@ impl Plugin for PlayerPlugin {
     }
 }
 
-fn spawn_player(mut commands: Commands, textures: Res<TextureAssets>,
+fn spawn_player(_commands: Commands, _textures: Res<TextureAssets>,
     
 ) {
     /*commands.spawn((

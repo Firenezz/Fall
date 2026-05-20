@@ -3,13 +3,10 @@ pub mod layer;
 
 use bevy::{prelude::*, platform::collections::HashSet};
 use bevy_ecs_tilemap::prelude::*;
-use common::world::primitives::CellPos;
 use layer::Layer;
 use rand::{rngs::ThreadRng, Rng};
-use simulation::temperature::ThermalPlugin;
 
-use crate::resources::Tile;
-use crate::{loading::TextureAssets, GameState};
+use crate::GameState;
 use crate::states::generation::GenerationState;
 pub struct WorldPlugin;
 
@@ -88,7 +85,7 @@ impl Grid {
 
 impl Default for Grid {
     fn default() -> Self {
-        Self { size: CHUNK_SIZE.into(), layers: vec![] }
+        Self { size: CHUNK_SIZE, layers: vec![] }
     }
 }
 
