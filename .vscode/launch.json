@@ -24,6 +24,8 @@
                     "build",
                     "--bin=fall",
                     "--package=fall",
+                    //"--features",
+                    //"editor",
                 ],
                 "filter": {
                     "name": "fall",
@@ -33,6 +35,7 @@
             "linux": {
                 "program": "${workspaceFolder}/target/debug/fall",
                 "env": {
+                    "VK_LAYER_MESSAGE_FILTER_FILE": "${workspaceFolder}/vk_layer_settings.txt",
                     "CARGO_MANIFEST_DIR": "${workspaceFolder}",
                     "LD_LIBRARY_PATH": "${env:LD_LIBRARY_PATH}:${workspaceFolder}/target/debug:${workspaceFolder}/target/debug/deps:${env:HOME}/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib:${env:HOME}/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib:${env:HOME}/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib:${env:HOME}/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib"
                 }

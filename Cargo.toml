@@ -83,8 +83,8 @@ bevy = { workspace = true, default-features = false, features = [
     "default_app",
     "2d_api",
     "2d_bevy_render",
-    #"3d_api",
-    #"3d_bevy_render",
+    "3d_api",
+    "3d_bevy_render",
     "ui_api",
     "ui_bevy_render",
     "scene",
@@ -97,6 +97,7 @@ bevy = { workspace = true, default-features = false, features = [
     "x11",
     "wayland",
     "sysinfo_plugin",
+    "hotpatching",
 
     "track_location",
     "trace"
