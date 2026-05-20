@@ -5,10 +5,12 @@ publish = false
 authors = ["FireNezz <git@nikl.me>"] # <git@nikl.me>
 edition = "2024"
 exclude = ["dist", "build", "assets", "credits"]
+readme = "readme.md"
+categories = ["game-development", "simulation"]
 
 [workspace]
 members = [
-    "crates/common", 
+    "crates/common", "crates/configuration", 
     "crates/simulation",
     "crates/voronoi"
 ]
@@ -25,16 +27,9 @@ bevy = { version = "0.18", default-features = false }
 bevy_ecs_tilemap = { version = "0.18" }
 bevy_reflect = { version = "0.18" }
 tracing = "0.1"
+thiserror = { version = "2.0.18" }
 
 # Debugging
-bevy-inspector-egui = {version = "0.36.0" , default-features = false, features = [
-    "documentation",
-    "bevy_core_pipeline",
-    "bevy_image",
-    "bevy_pbr",
-    "bevy_render",
-    "egui_clipboard",
-]}
 
 [profile.dev.package."*"]
 opt-level = 3
@@ -73,6 +68,9 @@ debug_mode = [
 serde = [
     
 ]
+editor = [
+    "jackdaw"
+]
 
 release_mode = [
     "serde"
@@ -85,8 +83,8 @@ bevy = { workspace = true, default-features = false, features = [
     "default_app",
     "2d_api",
     "2d_bevy_render",
-    "3d_api",
-    "3d_bevy_render",
+    #"3d_api",
+    #"3d_bevy_render",
     "ui_api",
     "ui_bevy_render",
     "scene",
@@ -116,19 +114,24 @@ log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"
 
 # Debugging
 bevy_mod_debugdump = { version = "0.15.0", optional = true }
+jackdaw = { version = "0.4.1", optional = true }
 
 # Game dependencies
 bevy_ecs_tilemap = { workspace = true }
-bevy-inspector-egui = { workspace = true}
-bevy_editor_pls = { version = "0.10.0" }
-bevy_framepace = "0.20.0"
+bevy_framepace = "0.21.0"
 tracing = { workspace = true }
+notify = "8.1.0"
 
 # Crates
 voronoi = { workspace = true }
 simulation = { workspace = true }
 common = { workspace = true }
-moonshine-save = "0.6.1"
+#moonshine-save = "0.6.1"
+
+# Required to make `rand`/`getrandom` work on wasm.
+# Backend is selected via `.cargo/config.toml` rustflags for the wasm32-unknown-unknown target.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.3", features = ["wasm_js"] }
 
 [build-dependencies]
 embed-resource = "1"

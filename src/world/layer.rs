@@ -1,16 +1,25 @@
 use bevy::prelude::*;
 use tracing;
-use bevy_ecs_tilemap::{map::{TilemapId, TilemapSize}, tiles::{TileBundle, TilePos, TileStorage}, TilemapBundle};
-use common::resources::MapSize;
-use crate::states::generation::GenerationState;
+use bevy_ecs_tilemap::{map::{TilemapId, TilemapSize}, tiles::{TileBundle, TileColor, TilePos, TileStorage}, TilemapBundle};
+use common::{resources::MapSize, units::temperature::{Celsius, Kelvin}};
+use crate::{loading::TextureAssets, states::generation::GenerationState};
+use simulation::temperature::{HeatCell, Temperature, ThermalConductivity};
 
 pub struct LayerPlugin;
 
 impl Plugin for LayerPlugin {
     fn build(&self, app: &mut App) {
         app
-            .insert_resource(MapSize(UVec2::new(3, 3)))
-            .add_systems(OnEnter(GenerationState::Generating), ((build_background_layer, build_solid_layer), next_generation_step).chain());
+            .insert_resource(MapSize(UVec2::new(10, 10)))
+            .add_systems(
+                OnEnter(GenerationState::Generating),
+                (
+                    (/*build_background_layer,*/ build_solid_layer),
+                    populate_layer_heat_cells,
+                )
+                    .chain(),
+            )
+            .add_systems(Update, update_tile_color_based_on_temperature);
     }
 }
 
@@ -28,8 +37,6 @@ impl Default for Layer {
 }
 
 
-
-
 #[derive(Bundle)]
 pub struct LayerBundle {
     layer: Layer,
@@ -42,6 +49,11 @@ impl Default for LayerBundle {
     }
 }
 
+pub enum Texture {
+    String(String),
+    Handle(Handle<Image>),
+}
+
 // Init methods
 
 #[derive(Default)]
@@ -50,6 +62,8 @@ pub struct LayerBuilder {
     layer_type: Option<LayerType>,
     size: Option<TilemapSize>,
     transform: Option<Transform>,
+    texture: Option<Texture>,
+    tile_function: Option<Box<dyn Fn(TilePos, Entity) -> TileBundle>>,
 }
 
 impl LayerBuilder {
@@ -77,11 +91,28 @@ impl LayerBuilder {
         self
     }
 
-    pub fn build(self, commands: &mut Commands) -> Entity {
+    pub fn with_texture(mut self, texture: Texture) -> Self {
+        self.texture = Some(texture);
+        self
+    }
+
+    pub fn with_tile_function(mut self, tile_function: impl Fn(TilePos, Entity) -> TileBundle + 'static) -> Self {
+        self.tile_function = Some(Box::new(tile_function));
+        self
+    }
+
+    pub fn build(self, commands: &mut Commands, resources: &Res<TextureAssets>) -> Entity {
 
         info!("Building layer");
 
         let layer_entity = commands.spawn(LayerBundle::default()).id();
+        let texture = match self.texture {
+            Some(Texture::String(name)) => {
+                resources.tile_atlas.clone()
+            }
+            Some(Texture::Handle(handle)) => handle,
+            None => resources.tile_atlas.clone()
+        };
         
         if let Some(name) = self.name {
             commands.entity(layer_entity).insert(Name::new(name));
@@ -94,25 +125,34 @@ impl LayerBuilder {
         if let Some(size) = self.size {
             use bevy_ecs_tilemap::prelude::*;
             let tile_size = TilemapTileSize { x: 16.0, y: 16.0 };
-            let grid_size = TilemapGridSize { x: size.x as f32 * tile_size.x, y: size.y as f32 * tile_size.y };
+            let grid_size = TilemapGridSize { x: tile_size.x, y: tile_size.y };
 
             info!("LayerBuilder::build - size: {:?}, tile_size: {:?}, grid_size: {:?}", size, tile_size, grid_size);
 
             let mut tile_storage = TileStorage::empty(size.into());
-            fill_layer(
-                TilemapId(layer_entity),
-                size,
-                commands,
-                &mut tile_storage,
-            );
+            helpers::filling::fill_tilemap(TileTextureIndex(5), size, TilemapId(layer_entity), commands, &mut tile_storage);
 
             let tilemap_size = TilemapSize { x: size.x, y: size.y };
+
+            if let Some(tile_function) = self.tile_function {
+                commands.entity(layer_entity).with_children(|parent| {
+                    for x in 0..size.x {
+                        for y in 0..size.y {
+                            let tile_pos = TilePos { x, y };
+                            let tile_bundle = tile_function(tile_pos, layer_entity);
+                            let tile_entity = parent.spawn(tile_bundle).id();
+                            tile_storage.set(&tile_pos, tile_entity);
+                        }
+                    }
+                });
+            }
 
             commands.entity(layer_entity).insert(TilemapBundle {
                 grid_size,
                 size: tilemap_size,
                 tile_size,
                 storage: tile_storage,
+                texture: TilemapTexture::Single(texture),
                 ..Default::default()
             });
         }
@@ -121,8 +161,8 @@ impl LayerBuilder {
     }
 }
 
-#[tracing::instrument(name = "Building solid layer", skip(commands, size, grid_query))]
-fn build_background_layer(mut commands: Commands, size: Res<MapSize>, mut grid_query: Query<Entity, With<super::Grid>>) -> Result<(), BevyError> {
+#[tracing::instrument(name = "Building solid layer", skip(commands, size, grid_query, resources))]
+fn build_background_layer(mut commands: Commands, size: Res<MapSize>, mut grid_query: Query<Entity, With<super::Grid>>, resources: Res<TextureAssets>) -> Result<(), BevyError> {
 
     use tracing::info;
 
@@ -136,7 +176,7 @@ fn build_background_layer(mut commands: Commands, size: Res<MapSize>, mut grid_q
             .with_name("Background Layer")
             .with_type(LayerType::Background)
             .with_size(map_size)
-            .build(&mut commands);
+            .build(&mut commands, &resources);
 
     commands.entity(grid_entity)
         .add_child(layer_entity);
@@ -144,8 +184,8 @@ fn build_background_layer(mut commands: Commands, size: Res<MapSize>, mut grid_q
     Ok(())
 }
 
-#[tracing::instrument(name = "Building solid layer", skip(commands, size, grid_query))]
-fn build_solid_layer(mut commands: Commands, size: Res<MapSize>, mut grid_query: Query<Entity, With<super::Grid>>) -> Result<(), BevyError> {
+#[tracing::instrument(name = "Building solid layer", skip(commands, size, grid_query, resources))]
+fn build_solid_layer(mut commands: Commands, size: Res<MapSize>, mut grid_query: Query<Entity, With<super::Grid>>, resources: Res<TextureAssets>) -> Result<(), BevyError> {
 
     use tracing::info;
 
@@ -162,7 +202,7 @@ fn build_solid_layer(mut commands: Commands, size: Res<MapSize>, mut grid_query:
             .with_name("Solid Layer")
             .with_type(LayerType::Solid)
             .with_size(map_size)
-            .build(&mut commands);
+            .build(&mut commands, &resources);
 
     commands.entity(grid_entity)
         .add_child(layer_entity);
@@ -170,37 +210,68 @@ fn build_solid_layer(mut commands: Commands, size: Res<MapSize>, mut grid_query:
     Ok(())
 }
 
-#[tracing::instrument(name = "Filling layer", skip(commands, tile_storage))]
-fn fill_layer(
-    tilemap_id: TilemapId,
-    size: TilemapSize,
-    commands: &mut Commands,
-    tile_storage: &mut TileStorage,
+#[tracing::instrument(name = "Populating heat cells", skip(commands, layer_query))]
+fn populate_layer_heat_cells(
+    mut commands: Commands,
+    layer_query: Query<(&Layer, &TileStorage, &TilemapSize), Added<TileStorage>>,
 ) {
+    for (layer, tile_storage, size) in &layer_query {
 
-    use simulation::temperature::*;
-    use bevy::log::tracing::Instrument;
-
-    commands.entity(tilemap_id.0).instrument(info_span!("Generating children")).inner_mut().with_children(|parent| {
         for x in 0..size.x {
             for y in 0..size.y {
                 let tile_pos = TilePos { x, y };
-                let tile_entity = parent.spawn(TileBundle {
-                    position: tile_pos,
-                    tilemap_id,
-                    ..Default::default()
-                })
-                .insert(HeatCell::default())
-                .id();
-                tile_storage.set(&tile_pos, tile_entity);
+                if let Some(tile_entity) = tile_storage.get(&tile_pos) {
+                    match tile_pos {
+                        TilePos { x, y } if x == size.x / 2 && y == size.y / 2 => {
+                            commands.entity(tile_entity).insert(HeatCell { temperature: Temperature::new(Celsius::new(2000.0)), conductivity: ThermalConductivity::new(100.0) });
+                        }
+                        _ => {
+                            commands.entity(tile_entity).insert(HeatCell::default().with_temperature(Temperature::new(Celsius::new(0.0))).with_conductivity(ThermalConductivity::new(10.0)));
+                        }
+                    }
+                }
             }
         }
-        info!("Tile storage: {:?}", tile_storage);
-    });
+    }
 }
 
-fn next_generation_step(mut commands: Commands, mut next_state: ResMut<NextState<GenerationState>>) {
-    next_state.set(GenerationState::Done);
+fn update_tile_color_based_on_temperature(mut tile_query: Query<(&mut TileColor, &HeatCell)>) {
+    for (mut tile_color, temperature) in &mut tile_query {
+        tile_color.0 = temperature_to_color(temperature.temperature.value);
+    }
+}
+
+fn temperature_to_color(temperature: Kelvin) -> Color {
+    // Keep 20°C (293.15K) as a visual midpoint (cyan-green).
+    let cold_k = 250.0;
+    let mid_k = 293.15;
+    let hot_k = 1200.0;
+    let k = temperature.get_value().clamp(cold_k, hot_k);
+
+    // Anchor colors:
+    // cold -> blue, midpoint -> cyan-green, hot -> red
+    let cold = (0.08, 0.25, 0.95);
+    let mid = (0.00, 0.95, 0.65);
+    let hot = (1.00, 0.05, 0.00);
+
+    let lerp = |a: f32, b: f32, t: f32| a + (b - a) * t;
+    let (r, g, b) = if k <= mid_k {
+        let t = (k - cold_k) / (mid_k - cold_k);
+        (
+            lerp(cold.0, mid.0, t),
+            lerp(cold.1, mid.1, t),
+            lerp(cold.2, mid.2, t),
+        )
+    } else {
+        let t = (k - mid_k) / (hot_k - mid_k);
+        (
+            lerp(mid.0, hot.0, t),
+            lerp(mid.1, hot.1, t),
+            lerp(mid.2, hot.2, t),
+        )
+    };
+
+    Color::srgb(r, g, b)
 }
 
 #[derive(Component, Default, Reflect, Debug)]

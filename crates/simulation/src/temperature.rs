@@ -1,3 +1,8 @@
+//! Tile heat conduction between neighbors.
+//!
+//! Numerical model, stability (CFL-style clamp), and parallel apply strategy:
+//! see repository root `docs/THERMAL_SIMULATION.md`.
+
 use std::{ops::{Add, Sub, Mul, Div}, time::Duration, ops::{Deref, DerefMut}};
 
 use bevy::prelude::*;
@@ -112,29 +117,56 @@ pub struct HeatCell {
     pub conductivity: ThermalConductivity,
 }
 
+impl HeatCell {
+    pub fn new(temperature: Temperature, conductivity: ThermalConductivity) -> Self {
+        Self { temperature, conductivity }
+    }
+
+    pub fn with_temperature(mut self, temperature: Temperature) -> Self {
+        self.temperature = temperature;
+        self
+    }
+
+    pub fn with_conductivity(mut self, conductivity: ThermalConductivity) -> Self {
+        self.conductivity = conductivity;
+        self
+    }
+}
+
 #[derive(Component, Reflect, Debug, PartialEq, PartialOrd)]
 #[reflect(Component)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct ThermalConductivity {
-    pub value: f32,
+pub struct ThermalConductivity(pub f32);
+
+impl ThermalConductivity {
+    pub fn new(value: f32) -> Self {
+        Self(value)
+    }
 }
 
 impl Default for ThermalConductivity {
     fn default() -> Self {
-        Self { value: 1.0 }
+        Self(1.0)
     }
 }
 
+/// Max fraction of the neighbor temperature gap a single edge may close in one step.
+/// With square 4-neighbors, keeping this ≤ 0.25 keeps explicit relaxation stable (no overshoot / blow-up).
+const MAX_EDGE_RELAXATION: f32 = 0.25;
+
 /// Calculates heat transfer between two HeatCells over a time step
-/// 
+///
+/// Uses explicit neighbor relaxation: ΔT₁ = λ(T₂−T₁), ΔT₂ = λ(T₁−T₂) with λ clamped so that
+/// large `conductivity * dt` does not violate the CFL-like bound for a 4-connected grid.
+///
 /// # Arguments
 /// * `cell1` - First heat cell
 /// * `cell2` - Second heat cell
 /// * `dt` - Time step in seconds
 /// * `transfer_coefficient` - How much heat can transfer between cells (0.0 to 1.0)
-/// 
+///
 /// # Returns
-/// Tuple of (new_temp1, new_temp2)
+/// Tuple of (delta_temp1, delta_temp2) in Kelvin as raw `f32` for accumulation
 //#[tracing::instrument(name = "Calculating heat transfer", skip(cell1, cell2, dt, transfer_coefficient))]
 pub fn calculate_heat_transfer(
     cell1: &HeatCell,
@@ -142,23 +174,14 @@ pub fn calculate_heat_transfer(
     dt: Duration,
     transfer_coefficient: f32,
 ) -> (f32, f32) {
-    // Calculate the average conductivity between the two cells
-    let avg_conductivity = (cell1.conductivity.value + cell2.conductivity.value) * 0.5;
-    
-    // Calculate temperature difference (ΔT)
+    let avg_conductivity = (cell1.conductivity.0 + cell2.conductivity.0) * 0.5;
     let temp_diff = cell2.temperature.value - cell1.temperature.value;
-    
-    // Calculate heat transfer using simplified Fourier's Law: q = k * ΔT * dt
-    // Heat flows from hot to cold (positive temp_diff means heat flows from cell2 to cell1)
-    // The transfer_coefficient controls the rate of heat transfer (0.0 to 1.0)
-    let heat_transfer = avg_conductivity * temp_diff * dt.as_secs_f32() * transfer_coefficient;
+
+    let lambda = (avg_conductivity * dt.as_secs_f32() * transfer_coefficient).min(MAX_EDGE_RELAXATION);
+    let heat_transfer = lambda * temp_diff;
 
     debug!("Heat transfer: {}", heat_transfer);
-    
-    // Return new temperatures
-    // Heat flows from hot to cold, so:
-    // Hot cell loses heat (negative)
-    // Cold cell gains heat (positive)
+
     (heat_transfer.get_value(), -heat_transfer.get_value())
 }
 
@@ -183,25 +206,29 @@ fn thermal_conduction(
     mut thread_changes: Local<Parallel<Vec<(usize, f32)>>>,
 ) {
     simulation_rate.rate.tick(time.delta());
-    if simulation_rate.rate.just_finished() {
+    let times_finished = simulation_rate.rate.times_finished_this_tick();
+    let size = size.0;
+    for _ in 0..times_finished {
         use bevy_ecs_tilemap::helpers::square_grid::neighbors::Neighbors;
-        let map_size = bevy_ecs_tilemap::map::TilemapSize::from(size.into_inner().0);
+        let map_size = bevy_ecs_tilemap::map::TilemapSize::from(size);
         let mut temp_accumulators = vec![0.0; (map_size.x * map_size.y) as usize];
 
         // First pass: collect temperature changes in parallel using thread-local buffers
-        // (avoids Mutex contention; see docs/MULTITHREADING_BEVY.md)
+        // (avoids Mutex contention; model and stability notes: docs/THERMAL_SIMULATION.md)
+        let thread_changes_ref = &*thread_changes;
         tile_heat_query.par_iter().for_each(|(child_of, heat_cell, tile_pos)| {
-            let mut local = thread_changes.borrow_local_mut();
+            let mut local = thread_changes_ref.borrow_local_mut();
             if let Ok(tile_storage) = layer_query.get(child_of.parent()) {
                 let current_index = tile_pos.to_index(&map_size) as usize;
                 let neighbors = Neighbors::get_square_neighboring_positions(tile_pos, &map_size, false)
                     .entities(tile_storage);
 
+
                 for neighbor in neighbors.iter() {
                     if let Ok((_child_of_neighbor, neighbor_cell, neighbor_pos)) = tile_heat_query.get(*neighbor) {
                         let neighbor_index = neighbor_pos.to_index(&map_size) as usize;
                         if neighbor_index > current_index {
-                            let (delta1, delta2) = calculate_heat_transfer(heat_cell, neighbor_cell, time.delta(), 0.5);
+                            let (delta1, delta2) = calculate_heat_transfer(heat_cell, neighbor_cell, simulation_rate.rate.duration(), 0.5);
                             local.push((current_index, delta1));
                             local.push((neighbor_index, delta2));
                         }
@@ -219,7 +246,8 @@ fn thermal_conduction(
         // Second pass: apply all temperature changes in parallel
         tile_heat_query.par_iter_mut().for_each(|(_, mut heat_cell, tile_pos)| {
             let index = tile_pos.to_index(&map_size) as usize;
-            heat_cell.temperature.value += temp_accumulators[index];
+            let next = heat_cell.temperature.value.get_value() + temp_accumulators[index];
+            heat_cell.temperature.set_temperature(Kelvin::new(next));
         });
     }
 }
@@ -334,11 +362,11 @@ mod tests {
     fn test_calculate_heat_transfer() {
         let cell1 = HeatCell {
             temperature: Temperature { value: Kelvin::new(100.0) },
-            conductivity: ThermalConductivity { value: 1.0 },
+            conductivity: ThermalConductivity::default(),
         };
         let cell2 = HeatCell {
             temperature: Temperature { value: Kelvin::new(0.0) },
-            conductivity: ThermalConductivity { value: 1.0 },
+            conductivity: ThermalConductivity::default(),
         };
         
         let dt = Duration::from_secs(1);
@@ -346,11 +374,9 @@ mod tests {
 
         let (cell1_new_temp, cell2_new_temp) = calculate_heat_transfer(&cell1, &cell2, dt, transfer_coefficient);
 
-        // With temp_diff = -100, conductivity = 1.0, dt = 1.0, transfer_coefficient = 1.0
-        // heat_transfer = 1.0 * -100 * 1.0 * 1.0 = -100
-        // So cell1 (hot) should lose 100°C and cell2 (cold) should gain 100°C
-        assert_eq!(cell1_new_temp, -100.0);
-        assert_eq!(cell2_new_temp, 100.0);
+        // temp_diff = -100; λ = min(1.0, MAX_EDGE_RELAXATION) = 0.25 → heat_transfer = -25
+        assert_eq!(cell1_new_temp, -25.0);
+        assert_eq!(cell2_new_temp, 25.0);
     }
 
     #[test]

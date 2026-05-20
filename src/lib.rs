@@ -55,15 +55,12 @@ impl Plugin for GamePlugin {
 
         #[cfg(any(debug_assertions, feature = "debug_mode"))]
         {
-            use bevy_inspector_egui::{bevy_egui::EguiPlugin};
+            
+        }
 
-            println!("Adding EguiPlugin");
-
-            app
-                .add_plugins(EguiPlugin::default())
-                .add_plugins((bevy_inspector_egui::quick::WorldInspectorPlugin::default(), LogDiagnosticsPlugin::default()))
-                //.add_plugins(FrameTimeDiagnosticsPlugin);
-                ;
+        #[cfg(not(feature = "editor"))]
+        {
+            
         }
     }
 }

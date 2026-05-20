@@ -12,7 +12,7 @@ pub struct SimulationRate {
 impl Default for SimulationRate {
     fn default() -> Self {
         use std::time::Duration;
-        Self { rate: Timer::new(Duration::from_millis(200), TimerMode::Repeating) }
+        Self { rate: Timer::new(Duration::from_millis(100), TimerMode::Repeating) }
     }
 }
 

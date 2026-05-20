@@ -11,6 +11,4 @@ pub struct BuidlingDefinition {
 pub struct DataDrivenBuildingDefinition {
     pub display_name: String,
     pub description: String,
-
-    pub data: HashMap<String, String>,
 }

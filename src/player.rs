@@ -20,11 +20,11 @@ impl Plugin for PlayerPlugin {
 fn spawn_player(mut commands: Commands, textures: Res<TextureAssets>,
     
 ) {
-    commands.spawn((
+    /*commands.spawn((
         Sprite::from_image(textures.bevy.clone()),
         Transform::from_translation(Vec3::new(0., 0., 0.)),
         Player,
-    ));
+    ));*/
 }
 
 fn move_player(
