@@ -1,0 +1,8 @@
+
+dependencies 
+
+dnf install wayland-devel wayland-protocols-devel
+
+dnf install systemd-devel
+
+dnf install alsa-lib-devel

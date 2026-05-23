@@ -9,6 +9,7 @@ bevy = { workspace = true, features = [
     ]}
 tracing = "0.1"
 bevy_ecs_tilemap = { workspace = true }
+bevy_reflect = { workspace = true }
 
 # Workspace dependencies
 common = { workspace = true }

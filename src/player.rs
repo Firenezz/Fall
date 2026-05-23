@@ -17,16 +17,17 @@ impl Plugin for PlayerPlugin {
     }
 }
 
-fn spawn_player(mut commands: Commands, textures: Res<TextureAssets>,
+fn spawn_player(_commands: Commands, _textures: Res<TextureAssets>,
     
 ) {
-    commands.spawn((
+    /*commands.spawn((
         Sprite::from_image(textures.bevy.clone()),
         Transform::from_translation(Vec3::new(0., 0., 0.)),
         Player,
-    ));
+    ));*/
 }
 
+#[allow(dead_code)]
 fn move_player(
     time: Res<Time>,
     actions: Res<Actions>,

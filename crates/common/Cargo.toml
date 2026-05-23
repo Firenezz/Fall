@@ -5,7 +5,30 @@ edition = "2024"
 
 [dependencies]
 bevy = { workspace = true, features = [
-    "trace"
-    ]}
+    "trace",
+], default-features = false}
 tracing = "0.1"
 bevy_ecs_tilemap = { workspace = true }
+auto_ops = { version = "0.3.0" }
+thiserror = { workspace = true }
+
+# serialization
+serde = { version = "1.0.214" }
+serde_toml = { version = "0.0.1" }
+serde_json = { version = "1.0.142" }
+
+[features]
+default = [
+    "dev_mode",
+    "serde"
+]
+dev_mode = [
+    "bevy/dynamic_linking",
+]
+serde = [
+    
+]
+
+release_mode = [
+    "serde"
+]

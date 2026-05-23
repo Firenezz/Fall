@@ -9,19 +9,17 @@ mod world;
 mod helpers;
 mod resources;
 mod states;
+mod sandbox;
 
 use crate::actions::ActionsPlugin;
 use crate::audio::InternalAudioPlugin;
 use crate::loading::LoadingPlugin;
 use crate::menu::MenuPlugin;
 use crate::player::PlayerPlugin;
+use crate::sandbox::SandboxPlugin;
 
 use bevy::app::App;
-#[cfg(debug_assertions)]
-use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use states::generation::GenerationState;
 
 // This example game uses States to separate logic
 // See https://bevy-cheatbook.github.io/programming/states.html
@@ -42,22 +40,25 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<GameState>()
-            .init_state::<GenerationState>().add_plugins((
+            .add_plugins((
             LoadingPlugin,
             MenuPlugin,
             ActionsPlugin,
             InternalAudioPlugin,
             PlayerPlugin,
+            SandboxPlugin,
             world::WorldPlugin,
             simulation::SimulationPlugin,
         ));
 
-        #[cfg(debug_assertions)]
+        #[cfg(any(debug_assertions, feature = "debug_mode"))]
         {
-            app
-                .add_plugins((WorldInspectorPlugin::default(), LogDiagnosticsPlugin::default()))
-                //.add_plugins(FrameTimeDiagnosticsPlugin);
-                ;
+            
+        }
+
+        #[cfg(not(feature = "editor"))]
+        {
+            
         }
     }
 }

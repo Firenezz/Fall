@@ -4,69 +4,76 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-        // this config bypasses waiting for debugger attachment, increasing speed
+        // this config bypasses waiting for debugger attachment, increasing speed (still needs to compile :) )
         {
             "name": "Quick Launch",
             "type": "node-terminal",
             "request": "launch",
-            "command": "cargo run --features dev",
+            "command": "cargo run --features dev_mode",
         },
         {
             "type": "lldb",
             "request": "launch",
             "name": "Debug",
+            "program": "${workspaceFolder}/target/debug/tile_game",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "sourceLanguages": ["rust"],
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=tile_game",
-                    "--package=tile_game",
-                    "--features",
-                    "dev_mode",
+                    "--bin=fall",
+                    "--package=fall",
+                    //"--features",
+                    //"editor",
                 ],
                 "filter": {
-                    "name": "tile_game",
+                    "name": "fall",
                     "kind": "bin"
-                },
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}",
-            "env": {
-                "CARGO_MANIFEST_DIR": "${workspaceFolder}",
-            },
-            "linux": {
-                "env": {
-                    // platform-specific launch config overwrites (rather than merges with) existing config, so need to specify CARGO_MANIFEST_DIR again
-                    "CARGO_MANIFEST_DIR": "${workspaceFolder}",
-                    "LD_LIBRARY_PATH": "${env:LD_LIBRARY_PATH}:${workspaceFolder}/target/debug:${env:HOME}/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib:${env:HOME}/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib"
                 }
             },
+            "linux": {
+                "program": "${workspaceFolder}/target/debug/fall",
+                "env": {
+                    "VK_LAYER_MESSAGE_FILTER_FILE": "${workspaceFolder}/vk_layer_settings.txt",
+                    "CARGO_MANIFEST_DIR": "${workspaceFolder}",
+                    "LD_LIBRARY_PATH": "${env:LD_LIBRARY_PATH}:${workspaceFolder}/target/debug:${workspaceFolder}/target/debug/deps:${env:HOME}/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib:${env:HOME}/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib:${env:HOME}/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib:${env:HOME}/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib"
+                }
+                //"env": {
+                    // platform-specific launch config overwrites (rather than merges with) existing config, so need to specify CARGO_MANIFEST_DIR again
+                //    "CARGO_MANIFEST_DIR": "${workspaceFolder}",
+                //    "LD_LIBRARY_PATH": "${env:LD_LIBRARY_PATH}:${workspaceFolder}/target/debug:${workspaceFolder}/target/debug/deps:${env:HOME}/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib:${env:HOME}/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib:${env:HOME}/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib"
+                //}
+            },
             "windows": {
+                "program": "${workspaceFolder}/target/debug/fall.exe",
                 "env": {
                     "CARGO_MANIFEST_DIR": "${workspaceFolder}",
-                    "PATH": "${workspaceFolder}/target/debug/deps;${env:USERPROFILE}\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-pc-windows-msvc\\lib;${env:PATH}" // for windows
+                    "PATH": "${env:PATH};${workspaceFolder}/target/debug/deps;${env:USERPROFILE}\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-pc-windows-msvc\\lib" // for windows
                 }
             }
         },
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'tile_game'",
+            "name": "Debug executable 'fall'",
+            "program": "${workspaceFolder}/target/debug/fall",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "sourceLanguages": ["rust"],
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=tile_game",
-                    "--package=tile_game",
+                    "--bin=fall",
+                    "--package=fall",
                     "--features",
                     "dev_mode",
                 ],
                 "filter": {
-                    "name": "tile_game",
+                    "name": "fall",
                     "kind": "bin"
                 }
             },
-            "args": [],
-            "cwd": "${workspaceFolder}",
-
             "env": {
                 "CARGO_MANIFEST_DIR": "${workspaceFolder}",
                 "PATH": "${workspaceFolder}/target/debug/deps;${env:USERPROFILE}\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-pc-windows-msvc\\lib;${env:PATH}" // for windows
@@ -76,23 +83,35 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug unit tests",
+            "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}",
+            "args": ["--test"],
+            "cwd": "${workspaceFolder}",
+            "sourceLanguages": ["rust"],
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=tile_game",
-                    "--package=tile_game",
+                    "--bin=fall",
+                    "--package=fall",
                 ],
                 "filter": {
-                    "name": "tile_game",
+                    "name": "fall",
                     "kind": "bin"
                 }
             },
-            "args": [],
-            "cwd": "${workspaceFolder}",
-            "env": {
-                "CARGO_MANIFEST_DIR": "${workspaceFolder}",
-                "LD_LIBRARY_PATH": "${env:LD_LIBRARY_PATH}:${workspaceFolder}/target/debug:${env:HOME}/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib:${env:HOME}/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib"
+            "linux": {
+                "program": "${workspaceFolder}/target/debug/fall",
+                "env": {
+                    "CARGO_MANIFEST_DIR": "${workspaceFolder}",
+                    "LD_LIBRARY_PATH": "${env:LD_LIBRARY_PATH}:${workspaceFolder}/target/debug:${workspaceFolder}/target/debug/deps:${env:HOME}/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib:${env:HOME}/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib:${env:HOME}/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib:${env:HOME}/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib"
+                }
+            },
+            "windows": {
+                "program": "${workspaceFolder}/target/debug/fall.exe",
+                "env": {
+                    "CARGO_MANIFEST_DIR": "${workspaceFolder}",
+                    "PATH": "${env:PATH};${workspaceFolder}/target/debug/deps;${env:USERPROFILE}\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-pc-windows-msvc\\lib" // for windows
+                }
             }
         }
     ]

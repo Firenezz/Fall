@@ -189,11 +189,10 @@ fn click_play_button(
                 if let Some(state) = change_state {
                     next_state.set(state.0.clone());
                     next_generation_state.set(GenerationState::Initializing);
-                } else if let Some(link) = open_link {
-                    if let Err(error) = webbrowser::open(link.0) {
+                } else if let Some(link) = open_link
+                    && let Err(error) = webbrowser::open(link.0) {
                         warn!("Failed to open link {error:?}");
                     }
-                }
             }
             Interaction::Hovered => {
                 *color = button_colors.hovered.into();
@@ -207,6 +206,6 @@ fn click_play_button(
 
 fn cleanup_menu(mut commands: Commands, menu: Query<Entity, With<Menu>>) {
     for entity in menu.iter() {
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).despawn();
     }
 }

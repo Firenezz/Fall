@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+// CHORE: Remove this once we have a proper way to handle states
 
 use bevy::prelude::*;
 
@@ -10,6 +12,7 @@ pub enum GenerationState {
     Done,
 }
 
+#[allow(dead_code)]
 impl GenerationState {
     pub fn is_generating(&self) -> bool {
         matches!(self, Self::Generating | Self::Initializing)

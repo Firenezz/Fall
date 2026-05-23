@@ -1,14 +1,16 @@
 [package]
-name = "tile_game"
+name = "fall"
 version = "0.1.0"
 publish = false
 authors = ["FireNezz <git@nikl.me>"] # <git@nikl.me>
-edition = "2021"
+edition = "2024"
 exclude = ["dist", "build", "assets", "credits"]
+readme = "readme.md"
+categories = ["game-development", "simulation"]
 
 [workspace]
 members = [
-    "crates/common", 
+    "crates/common", "crates/configuration", 
     "crates/simulation",
     "crates/voronoi"
 ]
@@ -21,11 +23,13 @@ simulation = { path = "./crates/simulation" }
 common = { path = "./crates/common" }
 
 # External
-bevy = { version = "0.15.3", default-features = false }
-bevy_ecs_tilemap = { version = "0.15" }
+bevy = { version = "0.18", default-features = false }
+bevy_ecs_tilemap = { version = "0.18" }
+bevy_reflect = { version = "0.18" }
+tracing = "0.1"
+thiserror = { version = "2.0.18" }
 
 # Debugging
-bevy-inspector-egui = "0.30.0"
 
 [profile.dev.package."*"]
 opt-level = 3
@@ -50,53 +54,57 @@ codegen-units = 1
 strip = true
 
 [features]
+default = [
+    "dev_mode",
+    "debug_mode",
+    "serde"
+]
 dev_mode = [
     "bevy/dynamic_linking",
 ]
 debug_mode = [
     "bevy_mod_debugdump"
 ]
+serde = [
+    
+]
+editor = [
+    
+]
+
+release_mode = [
+    "serde"
+]
 
 # All of Bevy's default features exept for the audio related ones (bevy_audio, vorbis), since they clash with bevy_kira_audio
 #   and android_shared_stdcxx/android-game-activity, since those are covered in `mobile`
 [dependencies]
 bevy = { workspace = true, default-features = false, features = [
-    "animation",
-    "bevy_asset",
-    "bevy_color",
-    "bevy_core_pipeline",
+    "default_app",
+    "2d_api",
+    "2d_bevy_render",
+    "3d_api",
+    "3d_bevy_render",
+    "ui_api",
+    "ui_bevy_render",
+    "scene",
+    "picking",
     "bevy_gilrs",
-    "bevy_gizmos",
-    "bevy_gltf",
-    "bevy_mesh_picking_backend",
-    "bevy_pbr",
-    "bevy_picking",
-    "bevy_render",
-    "bevy_scene",
-    "bevy_sprite",
-    "bevy_sprite_picking_backend",
-    "bevy_state",
-    "bevy_text",
-    "bevy_ui",
-    "bevy_ui_picking_backend",
-    "bevy_window",
     "bevy_winit",
-    "custom_cursor",
     "default_font",
-    "hdr",
-    "multi_threaded", # Deactivate multithreading if commented out
-    "png",
-    "smaa_luts",
-    "sysinfo_plugin",
-    "tonemapping_luts",
+    "multi_threaded",
     "webgl2",
     "x11",
-    #"std", # deactivated until 0.16 is used in the dependencies
-    #"async_executor"
+    "wayland",
+    "sysinfo_plugin",
+    "hotpatching",
+
+    "track_location",
+    "trace"
 ] }
-bevy_kira_audio = { version = "0.22.0", features = ["android_shared_stdcxx"] }
-bevy_asset_loader = { version = "0.22" }
-rand = { version = "0.9.1" }
+bevy_kira_audio = { version = "0.25.0", features = ["android_shared_stdcxx"] }
+bevy_asset_loader = { version = "0.25.0" }
+rand = { version = "0.9" }
 webbrowser = { version = "1", features = ["hardened"] }
 
 # keep the following in sync with Bevy's dependencies
@@ -106,18 +114,25 @@ image = { version = "0.25", default-features = false }
 log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"] }
 
 # Debugging
-bevy_mod_debugdump = { version = "0.12.1", optional = true }
+bevy_mod_debugdump = { version = "0.15.0", optional = true }
 
 # Game dependencies
 bevy_ecs_tilemap = { workspace = true }
-bevy-inspector-egui = { workspace = true }
-bevy_editor_pls = { version = "0.10.0" }
-bevy_framepace = "0.18.1"
+bevy_framepace = "0.21.0"
+tracing = { workspace = true }
+notify = "8.1.0"
 
 # Crates
 voronoi = { workspace = true }
 simulation = { workspace = true }
 common = { workspace = true }
+ron = "0.12.1"
+#moonshine-save = "0.6.1"
+
+# Required to make `rand`/`getrandom` work on wasm.
+# Backend is selected via `.cargo/config.toml` rustflags for the wasm32-unknown-unknown target.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.3", features = ["wasm_js"] }
 
 [build-dependencies]
 embed-resource = "1"

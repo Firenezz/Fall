@@ -1,7 +1,10 @@
-use bevy::ecs::system::Resource;
+#![allow(dead_code)]
+// CHORE: Remove this once we have a proper way to handle resources
 
+use bevy::prelude::Resource;
 
 #[derive(Resource)]
+#[derive(Default)]
 pub struct Tileset {
     pub tiles: Vec<Tile>,
 }
@@ -25,10 +28,5 @@ pub struct ElementConfig {
     pub specific_heat: f32,
 }
 
-impl Default for Tileset {
-    fn default() -> Self {
-        Self { tiles: vec![] }
-    }
-}
 
 
