@@ -1,13 +1,12 @@
 //! Tile heat conduction between neighbors.
 //!
-//! Numerical model, stability (CFL-style clamp), and parallel apply strategy:
-//! see repository root `docs/THERMAL_SIMULATION.md`.
+//! Numerical model and stability (CFL-style clamp): see `docs/THERMAL_SIMULATION.md`.
+//! Conduction uses row-major scratch buffers (gather → stencil → scatter); [`HeatCell`] stays on tiles.
 
 use std::{ops::{Add, Sub, Mul, Div}, time::Duration, ops::{Deref, DerefMut}};
 
-use bevy::prelude::*;
-use bevy::utils::Parallel;
-use bevy_ecs_tilemap::tiles::TileStorage;
+use bevy::{math::ops::sqrt, prelude::*};
+use bevy_ecs_tilemap::{map::TilemapSize, tiles::TileStorage};
 use common::{resources::MapSize, units::temperature::Kelvin};
 
 use bevy_ecs_tilemap::prelude::TilePos;
@@ -151,8 +150,39 @@ impl Default for ThermalConductivity {
 }
 
 /// Max fraction of the neighbor temperature gap a single edge may close in one step.
-/// With square 4-neighbors, keeping this ≤ 0.25 keeps explicit relaxation stable (no overshoot / blow-up).
-const MAX_EDGE_RELAXATION: f32 = 0.25;
+/// With square 4-neighbors, sum of incident edge λ should stay ≲ 1; see `docs/THERMAL_SIMULATION.md`.
+const MAX_EDGE_RELAXATION: f32 = 0.15;
+
+/// Passed from `thermal_conduction` into edge relaxation (see `docs/THERMAL_SIMULATION.md`).
+const TRANSFER_COEFFICIENT: f32 = 0.5;
+
+/// Reused row-major workspace; [`HeatCell`] on tiles remains authoritative between steps.
+#[derive(Resource, Default)]
+struct ThermalScratch {
+    temperatures: Vec<f32>,
+    conductivities: Vec<f32>,
+    deltas: Vec<f32>,
+    active: Vec<bool>,
+}
+
+impl ThermalScratch {
+    fn ensure_size(&mut self, size: TilemapSize) {
+        let n = size.count() as usize;
+        self.temperatures.resize(n, 0.0);
+        self.conductivities.resize(n, 1.0);
+        self.deltas.resize(n, 0.0);
+        self.active.resize(n, false);
+    }
+}
+
+/// Scalar edge relaxation: ΔT₁ = λ(T₂−T₁); uses geometric mean for k_eff (see `docs/THERMAL_SIMULATION.md`).
+fn edge_delta(t1: f32, t2: f32, k1: f32, k2: f32, dt_secs: f32, transfer_coefficient: f32) -> f32 {
+    if (t2 - t1).abs() < 1.0 {
+        return 0.0;
+    }
+    let lambda = (sqrt(k1 * k2) * dt_secs * transfer_coefficient).min(MAX_EDGE_RELAXATION);
+    lambda * (t2 - t1)
+}
 
 /// Calculates heat transfer between two HeatCells over a time step
 ///
@@ -176,6 +206,9 @@ pub fn calculate_heat_transfer(
 ) -> (f32, f32) {
     let avg_conductivity = (cell1.conductivity.0 + cell2.conductivity.0) * 0.5;
     let temp_diff = cell2.temperature.value - cell1.temperature.value;
+    if temp_diff > Kelvin::new(20.0) {
+        warn!("Temperature difference is too large: {:?}", temp_diff);
+    }
 
     let lambda = (avg_conductivity * dt.as_secs_f32() * transfer_coefficient).min(MAX_EDGE_RELAXATION);
     let heat_transfer = lambda * temp_diff;
@@ -193,62 +226,147 @@ impl Plugin for ThermalPlugin {
             .register_type::<Temperature>()
             .register_type::<HeatCell>()
             .register_type::<ThermalConductivity>()
+            .init_resource::<ThermalScratch>()
             .add_systems(Update, thermal_conduction);
     }
 }
 
 fn thermal_conduction(
-    mut tile_heat_query: Query<(&ChildOf, &mut HeatCell, &TilePos)>,
+    mut heat_cells: Query<&mut HeatCell>,
     layer_query: Query<&TileStorage>,
+    mut scratch: ResMut<ThermalScratch>,
     mut simulation_rate: ResMut<SimulationRate>,
     size: Res<MapSize>,
     time: Res<Time>,
-    mut thread_changes: Local<Parallel<Vec<(usize, f32)>>>,
 ) {
     simulation_rate.rate.tick(time.delta());
     let times_finished = simulation_rate.rate.times_finished_this_tick();
-    let size = size.0;
+    let map_size = TilemapSize::from(size.0);
+    scratch.ensure_size(map_size);
+    let dt_secs = simulation_rate.rate.duration().as_secs_f32();
+
     for _ in 0..times_finished {
-        use bevy_ecs_tilemap::helpers::square_grid::neighbors::Neighbors;
-        let map_size = bevy_ecs_tilemap::map::TilemapSize::from(size);
-        let mut temp_accumulators = vec![0.0; (map_size.x * map_size.y) as usize];
+        for tile_storage in layer_query.iter() {
+            conduction_substep(
+                tile_storage,
+                &map_size,
+                &mut scratch,
+                &mut heat_cells,
+                dt_secs,
+            );
+        }
+    }
+}
 
-        // First pass: collect temperature changes in parallel using thread-local buffers
-        // (avoids Mutex contention; model and stability notes: docs/THERMAL_SIMULATION.md)
-        let thread_changes_ref = &*thread_changes;
-        tile_heat_query.par_iter().for_each(|(child_of, heat_cell, tile_pos)| {
-            let mut local = thread_changes_ref.borrow_local_mut();
-            if let Ok(tile_storage) = layer_query.get(child_of.parent()) {
-                let current_index = tile_pos.to_index(&map_size) as usize;
-                let neighbors = Neighbors::get_square_neighboring_positions(tile_pos, &map_size, false)
-                    .entities(tile_storage);
+/// Gather → stencil (Jacobi on scratch) → scatter for one layer.
+fn conduction_substep(
+    tile_storage: &TileStorage,
+    map_size: &TilemapSize,
+    scratch: &mut ThermalScratch,
+    heat_cells: &mut Query<&mut HeatCell>,
+    dt_secs: f32,
+) {
+    let w = map_size.x;
+    let h = map_size.y;
 
+    scratch.active.fill(false);
 
-                for neighbor in neighbors.iter() {
-                    if let Ok((_child_of_neighbor, neighbor_cell, neighbor_pos)) = tile_heat_query.get(*neighbor) {
-                        let neighbor_index = neighbor_pos.to_index(&map_size) as usize;
-                        if neighbor_index > current_index {
-                            let (delta1, delta2) = calculate_heat_transfer(heat_cell, neighbor_cell, simulation_rate.rate.duration(), 0.5);
-                            local.push((current_index, delta1));
-                            local.push((neighbor_index, delta2));
-                        }
-                    }
+    for y in 0..h {
+        for x in 0..w {
+            let pos = TilePos::new(x, y);
+            let i = pos.to_index(map_size);
+            if let Some(entity) = tile_storage.get(&pos) {
+                if let Ok(cell) = heat_cells.get(entity) {
+                    scratch.temperatures[i] = cell.temperature.value.get_value();
+                    scratch.conductivities[i] = cell.conductivity.0;
+                    scratch.active[i] = true;
                 }
             }
-        });
-
-        let mut all_changes = Vec::new();
-        thread_changes.drain_into(&mut all_changes);
-        for (index, change) in all_changes {
-            temp_accumulators[index] += change;
         }
+    }
 
-        // Second pass: apply all temperature changes in parallel
-        tile_heat_query.par_iter_mut().for_each(|(_, mut heat_cell, tile_pos)| {
-            let index = tile_pos.to_index(&map_size) as usize;
-            let next = heat_cell.temperature.value.get_value() + temp_accumulators[index];
-            heat_cell.temperature.set_temperature(Kelvin::new(next));
-        });
+    scratch.deltas.fill(0.0);
+
+    for y in 0..h {
+        for x in 0..w {
+            let i = TilePos::new(x, y).to_index(map_size);
+            if !scratch.active[i] {
+                continue;
+            }
+            let t = scratch.temperatures[i];
+            let k = scratch.conductivities[i];
+
+            std::iter::once(
+                match (x as u32, y as u32) {
+                    (0, 0) => {
+                        [
+                            None,
+                            Some(TilePos::new(0 + 1, 0)),
+                            None,
+                            Some(TilePos::new(0, 0 + 1)),
+                        ]
+                    }
+                    (0, y) => {
+                        [
+                            Some(TilePos::new(0 + 1, y)),
+                            None,
+                            Some(TilePos::new(0, y + 1)),
+                            Some(TilePos::new(0, y - 1)),
+                        ]
+                    }
+                    (x, 0) => {
+                        [
+                            Some(TilePos::new(x - 1, 0)),
+                            Some(TilePos::new(x + 1, 0)),
+                            None,
+                            Some(TilePos::new(x, 0 + 1)),
+                        ]
+                    }
+                    (x, y) => {
+                        [
+                            Some(TilePos::new(x - 1, y)),
+                            Some(TilePos::new(x + 1, y)),
+                            Some(TilePos::new(x, y - 1)),
+                            Some(TilePos::new(x, y + 1)),
+                        ]
+                    }
+                }
+            ).flatten().filter_map(|pos| pos).filter(|pos| pos.within_map_bounds(map_size)).for_each(|pos| {
+                let j = pos.to_index(map_size);
+                if scratch.active[j] {
+                    scratch.deltas[i] += edge_delta(
+                        t,
+                        scratch.temperatures[j],
+                        k,
+                        scratch.conductivities[j],
+                        dt_secs,
+                        TRANSFER_COEFFICIENT
+                    );
+                }
+            });
+        }
+    }
+
+    for i in 0..scratch.temperatures.len() {
+        if scratch.active[i] {
+            scratch.temperatures[i] += scratch.deltas[i];
+        }
+    }
+
+    for y in 0..h {
+        for x in 0..w {
+            let pos = TilePos::new(x, y);
+            let i = pos.to_index(map_size);
+            if !scratch.active[i] {
+                continue;
+            }
+            if let Some(entity) = tile_storage.get(&pos) {
+                if let Ok(mut cell) = heat_cells.get_mut(entity) {
+                    cell.temperature
+                        .set_temperature(Kelvin::new(scratch.temperatures[i]));
+                }
+            }
+        }
     }
 }
 

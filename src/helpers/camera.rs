@@ -64,6 +64,7 @@ pub fn zoom_scroll(
                 for mut ortho in query.iter_mut() {
                     if let Projection::Orthographic(ortho) = ortho.as_mut() {
                         ortho.scale += ev.y * 0.1;
+                        ortho.scale = ortho.scale.max(0.5).min(10.);
                     }
                 }
             }
@@ -71,6 +72,7 @@ pub fn zoom_scroll(
                 for mut ortho in query.iter_mut() {
                     if let Projection::Orthographic(ortho) = ortho.as_mut() {
                         ortho.scale += ev.y * 0.01;
+                        ortho.scale = ortho.scale.max(0.5).min(10.);
                     }
                 }
             }

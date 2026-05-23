@@ -27,6 +27,7 @@ fn spawn_player(_commands: Commands, _textures: Res<TextureAssets>,
     ));*/
 }
 
+#[allow(dead_code)]
 fn move_player(
     time: Res<Time>,
     actions: Res<Actions>,

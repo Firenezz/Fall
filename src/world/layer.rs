@@ -10,7 +10,7 @@ pub struct LayerPlugin;
 impl Plugin for LayerPlugin {
     fn build(&self, app: &mut App) {
         app
-            .insert_resource(MapSize(UVec2::new(10, 10)))
+            .insert_resource(MapSize(UVec2::new(100, 100)))
             .add_systems(
                 OnEnter(GenerationState::Generating),
                 (
@@ -45,6 +45,7 @@ pub struct LayerBundle {
 }
 
 
+#[allow(dead_code)]
 pub enum Texture {
     String(String),
     Handle(Handle<Image>),
@@ -62,6 +63,7 @@ pub struct LayerBuilder {
     tile_function: Option<Box<dyn Fn(TilePos, Entity) -> TileBundle>>,
 }
 
+#[allow(dead_code)]
 impl LayerBuilder {
     pub fn new() -> Self {
         Self::default()
@@ -157,6 +159,7 @@ impl LayerBuilder {
     }
 }
 
+#[allow(dead_code)]
 #[tracing::instrument(name = "Building solid layer", skip(commands, size, grid_query, resources))]
 fn build_background_layer(mut commands: Commands, size: Res<MapSize>, mut grid_query: Query<Entity, With<super::Grid>>, resources: Res<TextureAssets>) -> Result<(), BevyError> {
 
@@ -218,11 +221,11 @@ fn populate_layer_heat_cells(
                 let tile_pos = TilePos { x, y };
                 if let Some(tile_entity) = tile_storage.get(&tile_pos) {
                     match tile_pos {
-                        TilePos { x, y } if x == size.x / 2 && y == size.y / 2 => {
-                            commands.entity(tile_entity).insert(HeatCell { temperature: Temperature::new(Celsius::new(2000.0)), conductivity: ThermalConductivity::new(100.0) });
+                        TilePos { x, y } if (x + 10) % 20 == 0 || (y + 10) % 20 == 0 => {
+                            commands.entity(tile_entity).insert(HeatCell { temperature: Temperature::new(Celsius::new(5000.0)), conductivity: ThermalConductivity::new(60.0) });
                         }
                         _ => {
-                            commands.entity(tile_entity).insert(HeatCell::default().with_temperature(Temperature::new(Celsius::new(0.0))).with_conductivity(ThermalConductivity::new(10.0)));
+                            commands.entity(tile_entity).insert(HeatCell::default().with_temperature(Temperature::new(Celsius::new(0.0))).with_conductivity(ThermalConductivity::new(2.0)));
                         }
                     }
                 }
@@ -279,7 +282,7 @@ pub enum LayerType {
     GasPipe = 2,
     Liquid = 3,
     LiquidPipe = 4,
-    NPC = 5,
+    Npc = 5,
     Solid = 6, // Walls, floors, etc.
 
 }

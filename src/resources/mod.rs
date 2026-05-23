@@ -1,5 +1,7 @@
-use bevy::prelude::Resource;
+#![allow(dead_code)]
+// CHORE: Remove this once we have a proper way to handle resources
 
+use bevy::prelude::Resource;
 
 #[derive(Resource)]
 #[derive(Default)]

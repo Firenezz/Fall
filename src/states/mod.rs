@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+// CHORE: Remove this once we have a proper way to handle states
+
 use bevy::prelude::*;
 
 pub mod generation;
